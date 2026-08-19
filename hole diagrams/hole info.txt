@@ -1,0 +1,148 @@
+{
+  "holes": [
+    {
+      "hole": 1,
+      "name": "Tea Olive",
+      "par": 4,
+      "yards": 445,
+      "historicalAverage": 4.236,
+      "historicalRank": 6
+    },
+    {
+      "hole": 2,
+      "name": "Pink Dogwood",
+      "par": 5,
+      "yards": 585,
+      "historicalAverage": 4.770,
+      "historicalRank": 18
+    },
+    {
+      "hole": 3,
+      "name": "Flowering Peach",
+      "par": 4,
+      "yards": 350,
+      "historicalAverage": 4.071,
+      "historicalRank": 14
+    },
+    {
+      "hole": 4,
+      "name": "Flowering Crab Apple",
+      "par": 3,
+      "yards": 240,
+      "historicalAverage": 3.282,
+      "historicalRank": 3
+    },
+    {
+      "hole": 5,
+      "name": "Magnolia",
+      "par": 4,
+      "yards": 495,
+      "historicalAverage": 4.267,
+      "historicalRank": 5
+    },
+    {
+      "hole": 6,
+      "name": "Juniper",
+      "par": 3,
+      "yards": 180,
+      "historicalAverage": 3.135,
+      "historicalRank": 12
+    },
+    {
+      "hole": 7,
+      "name": "Pampas",
+      "par": 4,
+      "yards": 450,
+      "historicalAverage": 4.156,
+      "historicalRank": 10
+    },
+    {
+      "hole": 8,
+      "name": "Yellow Jasmine",
+      "par": 5,
+      "yards": 570,
+      "historicalAverage": 4.813,
+      "historicalRank": 15
+    },
+    {
+      "hole": 9,
+      "name": "Carolina Cherry",
+      "par": 4,
+      "yards": 460,
+      "historicalAverage": 4.133,
+      "historicalRank": 13
+    },
+    {
+      "hole": 10,
+      "name": "Camellia",
+      "par": 4,
+      "yards": 495,
+      "historicalAverage": 4.296,
+      "historicalRank": 2
+    },
+    {
+      "hole": 11,
+      "name": "White Dogwood",
+      "par": 4,
+      "yards": 520,
+      "historicalAverage": 4.303,
+      "historicalRank": 1
+    },
+    {
+      "hole": 12,
+      "name": "Golden Bell",
+      "par": 3,
+      "yards": 155,
+      "historicalAverage": 3.267,
+      "historicalRank": 4
+    },
+    {
+      "hole": 13,
+      "name": "Azalea",
+      "par": 5,
+      "yards": 545,
+      "historicalAverage": 4.775,
+      "historicalRank": 17
+    },
+    {
+      "hole": 14,
+      "name": "Chinese Fir",
+      "par": 4,
+      "yards": 440,
+      "historicalAverage": 4.162,
+      "historicalRank": 9
+    },
+    {
+      "hole": 15,
+      "name": "Firethorn",
+      "par": 5,
+      "yards": 550,
+      "historicalAverage": 4.781,
+      "historicalRank": 16
+    },
+    {
+      "hole": 16,
+      "name": "Redbud",
+      "par": 3,
+      "yards": 170,
+      "historicalAverage": 3.138,
+      "historicalRank": 11
+    },
+    {
+      "hole": 17,
+      "name": "Nandina",
+      "par": 4,
+      "yards": 450,
+      "historicalAverage": 4.164,
+      "historicalRank": 8
+    },
+    {
+      "hole": 18,
+      "name": "Holly",
+      "par": 4,
+      "yards": 465,
+      "historicalAverage": 4.232,
+      "historicalRank": 7
+    }
+  ]
+}

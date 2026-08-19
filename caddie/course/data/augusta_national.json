@@ -1,0 +1,549 @@
+{
+  "course": "Augusta National Golf Club",
+  "city": "Augusta",
+  "state": "GA",
+  "par": 72,
+  "card_yardage_total": 7555,
+  "sources": {
+    "geometry": {
+      "url": "https://www.provisualizer.com/3dlink.php?id=1",
+      "what": "tee / aim point / pin lat-lon per hole",
+      "confidence": "single third-party source; validated against official yardages (see validation report)"
+    },
+    "par_and_yardage": {
+      "url": "PGA Tour API via pgatourPY pga_course_stats('R2025014')",
+      "what": "official par and card yardage, 2025 Masters",
+      "confidence": "authoritative"
+    },
+    "elevation": {
+      "url": "https://epqs.nationalmap.gov/v1/json",
+      "what": "USGS 3DEP point elevations, metres",
+      "confidence": "authoritative bare-earth DEM (~1-3 m vertical); NOT a green-surface contour model"
+    }
+  },
+  "known_gaps": [
+    "No green surface contours, bunker polygons, fairway boundaries, or tree positions. Only point geometry is available.",
+    "No shot-tracking data exists for Augusta in the PGA Tour API (ShotLink is not deployed at the Masters), so dispersion and strokes-gained baselines must come from other venues.",
+    "Pin position is a single representative point, not the four daily Masters pin placements."
+  ],
+  "holes": [
+    {
+      "number": 1,
+      "name": "Tea Olive",
+      "par": 4,
+      "card_yardage": 445,
+      "tee": {
+        "lat": 33.502377350238,
+        "lon": -82.019908901991,
+        "elevation_m": 97.084571838
+      },
+      "aim_points": [
+        {
+          "lat": 33.503541950354,
+          "lon": -82.022461302246,
+          "elevation_m": 97.034675598
+        }
+      ],
+      "pin": {
+        "lat": 33.504460850446,
+        "lon": -82.023506202351,
+        "elevation_m": 100.795883179
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 444.4,
+        "route_yd": 449.3,
+        "tee_to_pin_bearing_deg": 304.78,
+        "elevation_change_m": 3.71
+      }
+    },
+    {
+      "number": 2,
+      "name": "Pink Dogwood",
+      "par": 5,
+      "card_yardage": 585,
+      "tee": {
+        "lat": 33.50480465048,
+        "lon": -82.024187502419,
+        "elevation_m": 100.516052246
+      },
+      "aim_points": [
+        {
+          "lat": 33.502461950246,
+          "lon": -82.024724802472,
+          "elevation_m": 89.23487854
+        },
+        {
+          "lat": 33.500762750076,
+          "lon": -82.023980502398,
+          "elevation_m": 73.981613159
+        }
+      ],
+      "pin": {
+        "lat": 33.500355050036,
+        "lon": -82.02349900235,
+        "elevation_m": 73.492744446
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 544.2,
+        "route_yd": 578.5,
+        "tee_to_pin_bearing_deg": 172.65,
+        "elevation_change_m": -27.02
+      }
+    },
+    {
+      "number": 3,
+      "name": "Flowering Peach",
+      "par": 4,
+      "card_yardage": 350,
+      "tee": {
+        "lat": 33.499778149978,
+        "lon": -82.023383802338,
+        "elevation_m": 73.476028442
+      },
+      "aim_points": [
+        {
+          "lat": 33.501273050127,
+          "lon": -82.025612202561,
+          "elevation_m": 76.372413635
+        }
+      ],
+      "pin": {
+        "lat": 33.501692450169,
+        "lon": -82.025992902599,
+        "elevation_m": 78.255393982
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 352.4,
+        "route_yd": 354.0,
+        "tee_to_pin_bearing_deg": 311.34,
+        "elevation_change_m": 4.78
+      }
+    },
+    {
+      "number": 4,
+      "name": "Flowering Crab Apple",
+      "par": 3,
+      "card_yardage": 240,
+      "tee": {
+        "lat": 33.502012850201,
+        "lon": -82.025559102556,
+        "elevation_m": 82.778533936
+      },
+      "aim_points": [],
+      "pin": {
+        "lat": 33.501828350183,
+        "lon": -82.027980102798,
+        "elevation_m": 73.798828125
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 247.0,
+        "route_yd": 247.0,
+        "tee_to_pin_bearing_deg": 264.78,
+        "elevation_change_m": -8.98
+      }
+    },
+    {
+      "number": 5,
+      "name": "Magnolia",
+      "par": 4,
+      "card_yardage": 495,
+      "tee": {
+        "lat": 33.502237850224,
+        "lon": -82.028518302852,
+        "elevation_m": 75.96219635
+      },
+      "aim_points": [
+        {
+          "lat": 33.499689049969,
+          "lon": -82.028463402846,
+          "elevation_m": 78.414985657
+        }
+      ],
+      "pin": {
+        "lat": 33.498344449834,
+        "lon": -82.027439202744,
+        "elevation_m": 77.149253845
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 484.8,
+        "route_yd": 502.7,
+        "tee_to_pin_bearing_deg": 166.99,
+        "elevation_change_m": 1.19
+      }
+    },
+    {
+      "number": 6,
+      "name": "Juniper",
+      "par": 3,
+      "card_yardage": 180,
+      "tee": {
+        "lat": 33.498830449883,
+        "lon": -82.02729790273,
+        "elevation_m": 76.333114624
+      },
+      "aim_points": [],
+      "pin": {
+        "lat": 33.500323550032,
+        "lon": -82.026850602685,
+        "elevation_m": 69.000617981
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 186.7,
+        "route_yd": 186.7,
+        "tee_to_pin_bearing_deg": 14.03,
+        "elevation_change_m": -7.33
+      }
+    },
+    {
+      "number": 7,
+      "name": "Pampas",
+      "par": 4,
+      "card_yardage": 450,
+      "tee": {
+        "lat": 33.500916650092,
+        "lon": -82.027412202741,
+        "elevation_m": 71.176521301
+      },
+      "aim_points": [
+        {
+          "lat": 33.500010350001,
+          "lon": -82.024766202477,
+          "elevation_m": 69.878135681
+        }
+      ],
+      "pin": {
+        "lat": 33.499485649949,
+        "lon": -82.023331602333,
+        "elevation_m": 75.679046631
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 449.5,
+        "route_yd": 449.6,
+        "tee_to_pin_bearing_deg": 112.81,
+        "elevation_change_m": 4.5
+      }
+    },
+    {
+      "number": 8,
+      "name": "Yellow Jasmine",
+      "par": 5,
+      "card_yardage": 570,
+      "tee": {
+        "lat": 33.499194049919,
+        "lon": -82.022350602235,
+        "elevation_m": 77.887252808
+      },
+      "aim_points": [
+        {
+          "lat": 33.501531350153,
+          "lon": -82.02329740233,
+          "elevation_m": 79.865287781
+        },
+        {
+          "lat": 33.503175650318,
+          "lon": -82.023319902332,
+          "elevation_m": 94.774139404
+        }
+      ],
+      "pin": {
+        "lat": 33.503715650372,
+        "lon": -82.02370060237,
+        "elevation_m": 96.87134552
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 565.4,
+        "route_yd": 574.9,
+        "tee_to_pin_bearing_deg": 346.02,
+        "elevation_change_m": 18.98
+      }
+    },
+    {
+      "number": 9,
+      "name": "Carolina Cherry",
+      "par": 4,
+      "card_yardage": 460,
+      "tee": {
+        "lat": 33.504485150449,
+        "lon": -82.024089402409,
+        "elevation_m": 99.878753662
+      },
+      "aim_points": [
+        {
+          "lat": 33.502474550247,
+          "lon": -82.022053602205,
+          "elevation_m": 87.065635681
+        }
+      ],
+      "pin": {
+        "lat": 33.502290050229,
+        "lon": -82.020641502064,
+        "elevation_m": 92.718147278
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 440.1,
+        "route_yd": 465.0,
+        "tee_to_pin_bearing_deg": 127.36,
+        "elevation_change_m": -7.16
+      }
+    },
+    {
+      "number": 10,
+      "name": "Camellia",
+      "par": 4,
+      "card_yardage": 495,
+      "tee": {
+        "lat": 33.502040750204,
+        "lon": -82.019674901967,
+        "elevation_m": 97.055915833
+      },
+      "aim_points": [
+        {
+          "lat": 33.499530649953,
+          "lon": -82.020619902062,
+          "elevation_m": 71.229278564
+        }
+      ],
+      "pin": {
+        "lat": 33.498054649805,
+        "lon": -82.020434502043,
+        "elevation_m": 66.243522644
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 489.6,
+        "route_yd": 499.3,
+        "tee_to_pin_bearing_deg": 189.03,
+        "elevation_change_m": -30.81
+      }
+    },
+    {
+      "number": 11,
+      "name": "White Dogwood",
+      "par": 4,
+      "card_yardage": 520,
+      "tee": {
+        "lat": 33.498656749866,
+        "lon": -82.018972001897,
+        "elevation_m": 69.915855408
+      },
+      "aim_points": [
+        {
+          "lat": 33.496329349633,
+          "lon": -82.020738702074,
+          "elevation_m": 59.403781891
+        }
+      ],
+      "pin": {
+        "lat": 33.49519804952,
+        "lon": -82.022187702219,
+        "elevation_m": 50.832794189
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 531.8,
+        "route_yd": 535.8,
+        "tee_to_pin_bearing_deg": 217.79,
+        "elevation_change_m": -19.08
+      }
+    },
+    {
+      "number": 12,
+      "name": "Golden Bell",
+      "par": 3,
+      "card_yardage": 155,
+      "tee": {
+        "lat": 33.495621949562,
+        "lon": -82.022410902241,
+        "elevation_m": 53.717639923
+      },
+      "aim_points": [],
+      "pin": {
+        "lat": 33.494508649451,
+        "lon": -82.023165102317,
+        "elevation_m": 50.656490326
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 155.3,
+        "route_yd": 155.3,
+        "tee_to_pin_bearing_deg": 209.46,
+        "elevation_change_m": -3.06
+      }
+    },
+    {
+      "number": 13,
+      "name": "Azalea",
+      "par": 5,
+      "card_yardage": 545,
+      "tee": {
+        "lat": 33.493718449372,
+        "lon": -82.023526002353,
+        "elevation_m": 58.431438446
+      },
+      "aim_points": [
+        {
+          "lat": 33.496184449618,
+          "lon": -82.023436902344,
+          "elevation_m": 55.998455048
+        },
+        {
+          "lat": 33.497012449701,
+          "lon": -82.024966902497,
+          "elevation_m": 57.775310516
+        }
+      ],
+      "pin": {
+        "lat": 33.497083549708,
+        "lon": -82.025549202555,
+        "elevation_m": 58.676395416
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 457.0,
+        "route_yd": 544.2,
+        "tee_to_pin_bearing_deg": 333.37,
+        "elevation_change_m": 0.24
+      }
+    },
+    {
+      "number": 14,
+      "name": "Chinese Fir",
+      "par": 4,
+      "card_yardage": 440,
+      "tee": {
+        "lat": 33.497538949754,
+        "lon": -82.025632002563,
+        "elevation_m": 60.002864838
+      },
+      "aim_points": [
+        {
+          "lat": 33.497175349718,
+          "lon": -82.022806002281,
+          "elevation_m": 66.770812988
+        }
+      ],
+      "pin": {
+        "lat": 33.497444449744,
+        "lon": -82.021339002134,
+        "elevation_m": 69.23992157
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 436.4,
+        "route_yd": 443.2,
+        "tee_to_pin_bearing_deg": 91.51,
+        "elevation_change_m": 9.24
+      }
+    },
+    {
+      "number": 15,
+      "name": "Firethorn",
+      "par": 5,
+      "card_yardage": 550,
+      "tee": {
+        "lat": 33.497581249758,
+        "lon": -82.020353502035,
+        "elevation_m": 63.6130867
+      },
+      "aim_points": [
+        {
+          "lat": 33.49830124983,
+          "lon": -82.023389202339,
+          "elevation_m": 73.064857483
+        },
+        {
+          "lat": 33.49859734986,
+          "lon": -82.025077602508,
+          "elevation_m": 64.435585022
+        }
+      ],
+      "pin": {
+        "lat": 33.498893449889,
+        "lon": -82.025587002559,
+        "elevation_m": 65.27281189
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 555.2,
+        "route_yd": 558.9,
+        "tee_to_pin_bearing_deg": 286.74,
+        "elevation_change_m": 1.66
+      }
+    },
+    {
+      "number": 16,
+      "name": "Redbud",
+      "par": 3,
+      "card_yardage": 170,
+      "tee": {
+        "lat": 33.498245449825,
+        "lon": -82.025753502575,
+        "elevation_m": 63.337360382
+      },
+      "aim_points": [],
+      "pin": {
+        "lat": 33.499583749958,
+        "lon": -82.026469902647,
+        "elevation_m": 64.558021545
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 177.9,
+        "route_yd": 177.9,
+        "tee_to_pin_bearing_deg": 335.94,
+        "elevation_change_m": 1.22
+      }
+    },
+    {
+      "number": 17,
+      "name": "Nandina",
+      "par": 4,
+      "card_yardage": 440,
+      "tee": {
+        "lat": 33.499831249983,
+        "lon": -82.026344802634,
+        "elevation_m": 66.997192383
+      },
+      "aim_points": [
+        {
+          "lat": 33.499005949901,
+          "lon": -82.023608802361,
+          "elevation_m": 74.462310791
+        }
+      ],
+      "pin": {
+        "lat": 33.498778249878,
+        "lon": -82.022158902216,
+        "elevation_m": 76.530754089
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 444.1,
+        "route_yd": 445.4,
+        "tee_to_pin_bearing_deg": 106.79,
+        "elevation_change_m": 9.53
+      }
+    },
+    {
+      "number": 18,
+      "name": "Holly",
+      "par": 4,
+      "card_yardage": 465,
+      "tee": {
+        "lat": 33.498213049821,
+        "lon": -82.021677402168,
+        "elevation_m": 73.574050903
+      },
+      "aim_points": [
+        {
+          "lat": 33.500672750067,
+          "lon": -82.021446102145,
+          "elevation_m": 80.901550293
+        }
+      ],
+      "pin": {
+        "lat": 33.501880550188,
+        "lon": -82.020515502052,
+        "elevation_m": 91.972175598
+      },
+      "derived": {
+        "straight_tee_to_pin_yd": 460.3,
+        "route_yd": 473.6,
+        "tee_to_pin_bearing_deg": 14.8,
+        "elevation_change_m": 18.4
+      }
+    }
+  ]
+}

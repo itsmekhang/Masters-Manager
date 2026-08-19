@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Streamlit secrets -- never commit these
+.streamlit/secrets.toml
+
+# Local scratch / debug output
+artifacts/
+scripts/.cache/
+
+# Editor/OS cruft
+.DS_Store

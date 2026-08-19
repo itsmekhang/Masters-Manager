@@ -1,0 +1,269 @@
+{
+  "_comment": [
+    "Georeference for the illustrated hole maps in hole diagrams/ (project root).",
+    "tee_uv and pin_uv are NORMALISED image coordinates (fraction of width,",
+    "fraction of height, origin top-left), PLACED BY EYE on an illustration.",
+    "The tee is the back/championship tee box -- the furthest one from the",
+    "green, since that is the tee the course model's yardages correspond to.",
+    "The pin is the centre of the green, matching the course model's single",
+    "representative pin point.",
+    "These are hand-picked reference points on marketing artwork, not survey",
+    "data. Good enough to show which side of a bunker a ball finishes; not",
+    "good for anything finer. See caddie/course/maps.py for the transform,",
+    "and scripts/check_hole_maps.py to audit every hole's residuals."
+  ],
+  "maps": [
+    {
+      "hole": 1,
+      "image": "hole 1/hole-map-1.jpg",
+      "green_image": "hole 1/hole 1 green.avif",
+      "tee_uv": [
+        0.099,
+        0.486
+      ],
+      "pin_uv": [
+        0.873,
+        0.583
+      ],
+      "note": "Tea Olive. Bunker short-right of the green."
+    },
+    {
+      "hole": 2,
+      "image": "hole 2/hole-map-2.jpg",
+      "green_image": "hole 2/hole 2 green.avif",
+      "tee_uv": [
+        0.078,
+        0.218
+      ],
+      "pin_uv": [
+        0.9,
+        0.44
+      ],
+      "note": "Pink Dogwood. Tee top-left, plunging downhill right."
+    },
+    {
+      "hole": 3,
+      "image": "hole 3/hole-map-3.jpg",
+      "green_image": "hole 3/hole 3 green.avif",
+      "tee_uv": [
+        0.085,
+        0.56
+      ],
+      "pin_uv": [
+        0.89,
+        0.608
+      ],
+      "note": "Flowering Peach. Cluster of four fairway bunkers left."
+    },
+    {
+      "hole": 4,
+      "image": "hole 4/hole-map-4.jpg",
+      "green_image": "hole 4/hole 4 green.avif",
+      "tee_uv": [
+        0.15,
+        0.507
+      ],
+      "pin_uv": [
+        0.825,
+        0.522
+      ],
+      "note": "Flowering Crab Apple. Par 3, two bunkers front of green."
+    },
+    {
+      "hole": 5,
+      "image": "hole 5/hole-map-5.jpg",
+      "green_image": "hole 5/hole 5 green.avif",
+      "tee_uv": [
+        0.108,
+        0.428
+      ],
+      "pin_uv": [
+        0.868,
+        0.352
+      ],
+      "note": "Magnolia. Deep fairway bunkers left, green up and right."
+    },
+    {
+      "hole": 6,
+      "image": "hole 6/hole-map-6.jpg",
+      "green_image": "hole 6/hole 6 green.avif",
+      "tee_uv": [
+        0.156,
+        0.49
+      ],
+      "pin_uv": [
+        0.813,
+        0.485
+      ],
+      "note": "Juniper. Par 3 downhill, single large bunker short-left."
+    },
+    {
+      "hole": 7,
+      "image": "hole 7/hole-map-7.jpg",
+      "green_image": "hole 7/hole 7 green.avif",
+      "tee_uv": [
+        0.109,
+        0.474
+      ],
+      "pin_uv": [
+        0.892,
+        0.527
+      ],
+      "note": "Pampas. Narrow chute; green ringed by bunkers."
+    },
+    {
+      "hole": 8,
+      "image": "hole 8/hole-map-8.jpg",
+      "green_image": "hole 8/hole 8 green.avif",
+      "tee_uv": [
+        0.093,
+        0.618
+      ],
+      "pin_uv": [
+        0.883,
+        0.48
+      ],
+      "note": "Yellow Jasmine. Par 5 climbing; one fairway bunker right."
+    },
+    {
+      "hole": 9,
+      "image": "hole 9/hole-map-9.jpg",
+      "green_image": "hole 9/hole 9 green.avif",
+      "tee_uv": [
+        0.095,
+        0.282
+      ],
+      "pin_uv": [
+        0.905,
+        0.361
+      ],
+      "note": "Carolina Cherry. Falls away then climbs to a shelf green."
+    },
+    {
+      "hole": 10,
+      "image": "hole 10/hole-map-10.jpg",
+      "green_image": "hole 10/hole 10 green.avif",
+      "tee_uv": [
+        0.095,
+        0.289
+      ],
+      "pin_uv": [
+        0.893,
+        0.329
+      ],
+      "note": "Camellia. The 101 ft drop; big bunker short-left of green."
+    },
+    {
+      "hole": 11,
+      "image": "hole 11/hole-map-11.jpg",
+      "green_image": "hole 11/hole 11 green.avif",
+      "tee_uv": [
+        0.078,
+        0.564
+      ],
+      "pin_uv": [
+        0.844,
+        0.538
+      ],
+      "note": "White Dogwood. Pond left of the green; stream right."
+    },
+    {
+      "hole": 12,
+      "image": "hole 12/hole-map-12.jpg",
+      "green_image": "hole 12/hole 12 green.avif",
+      "tee_uv": [
+        0.165,
+        0.551
+      ],
+      "pin_uv": [
+        0.75,
+        0.496
+      ],
+      "note": "Golden Bell. Tee boxes far left, green right beyond Rae's Creek."
+    },
+    {
+      "hole": 13,
+      "image": "hole 13/hole-map-13.jpg",
+      "green_image": "hole 13/hole 13 green.avif",
+      "tee_uv": [
+        0.078,
+        0.159
+      ],
+      "pin_uv": [
+        0.86,
+        0.356
+      ],
+      "note": "Azalea. 83 deg dogleg left -- the straight tee-pin line cuts the trees."
+    },
+    {
+      "hole": 14,
+      "image": "hole 14/hole-map-14.jpg",
+      "green_image": "hole 14/hole 14 green.avif",
+      "tee_uv": [
+        0.09,
+        0.3
+      ],
+      "pin_uv": [
+        0.883,
+        0.389
+      ],
+      "note": "Chinese Fir. No bunkers anywhere on the hole."
+    },
+    {
+      "hole": 15,
+      "image": "hole 15/hole-map-15.jpg",
+      "green_image": "hole 15/hole 15 green.avif",
+      "tee_uv": [
+        0.078,
+        0.529
+      ],
+      "pin_uv": [
+        0.885,
+        0.479
+      ],
+      "note": "Firethorn. Par 5, water short and long of the green."
+    },
+    {
+      "hole": 16,
+      "image": "hole 16/hole-map-16.jpg",
+      "green_image": "hole 16/hole 16 green.avif",
+      "tee_uv": [
+        0.223,
+        0.417
+      ],
+      "pin_uv": [
+        0.815,
+        0.477
+      ],
+      "note": "Redbud. Par 3 entirely over water."
+    },
+    {
+      "hole": 17,
+      "image": "hole 17/hole-map-17.jpg",
+      "green_image": "hole 17/hole 17 green.avif",
+      "tee_uv": [
+        0.095,
+        0.379
+      ],
+      "pin_uv": [
+        0.91,
+        0.43
+      ],
+      "note": "Nandina. Two bunkers left of the green."
+    },
+    {
+      "hole": 18,
+      "image": "hole 18/hole-map-18.jpg",
+      "green_image": "hole 18/hole 18 green.avif",
+      "tee_uv": [
+        0.098,
+        0.697
+      ],
+      "pin_uv": [
+        0.895,
+        0.618
+      ],
+      "note": "Holly. Uphill chute, two fairway bunkers left."
+    }
+  ]
+}
