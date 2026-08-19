@@ -1118,7 +1118,7 @@ def sidebar(course):
              "offline scale. The map is an illustration, georeferenced by eye.",
     )
     show_water = st.checkbox(
-        "Highlight water hazards", value=True,
+        "💧 Highlight water hazards", value=True,
         help="Colour-segmented from the map artwork, not surveyed -- expect "
              "rough edges and the odd creek split into a couple of pieces by "
              "shadow. See caddie.course.features.water_mask. A static tint, "

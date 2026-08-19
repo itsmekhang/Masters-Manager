@@ -218,18 +218,30 @@ def extract_map_features(
     # real creek segment with a few shadow-dropped gaps is still mostly
     # raw. Erosion afterward trims the anti-aliased fringe back down,
     # mainly around the open ponds.
+    #
+    # Two area floors, not one: a handful of the creek's segments near the
+    # green are only a few square metres, entirely raw (never touched by
+    # closing) -- real, just small. The single-stray-pixel false positives
+    # this same fraction check catches elsewhere top out at 0.3 m^2 once
+    # dilated, nowhere near the smallest genuine fragment (5.5 m^2), so a
+    # low floor for near-100%-raw blobs is safe: it only ever lets through
+    # things that were already water before closing did anything.
     from scipy import ndimage as ndi
     water_raw = water_mask(hsv)
     water_closed = ndi.binary_closing(water_raw, iterations=9)
     water_eroded = ndi.binary_erosion(water_closed, iterations=1)
     labeled, n_components = ndi.label(water_eroded)
+    water_mpp = proj.metres_per_pixel * downscale
     water_filtered = np.zeros_like(water_eroded)
     for i in range(1, n_components + 1):
         component = labeled == i
         raw_fraction = water_raw[component].sum() / component.sum()
-        if raw_fraction >= 0.3:
+        area_m2 = component.sum() * water_mpp * water_mpp
+        high_confidence = raw_fraction >= 0.9 and area_m2 >= 2.0
+        gap_bridged = raw_fraction >= 0.3 and area_m2 >= 20.0
+        if high_confidence or gap_bridged:
             water_filtered |= component
-    water = to_enu_polys(water_filtered, min_area_m2=20.0, max_area_m2=6000.0)
+    water = to_enu_polys(water_filtered, min_area_m2=1.0, max_area_m2=6000.0)
     trees = to_enu_polys(tree_mask(hsv), min_area_m2=25.0, max_area_m2=600.0, max_n=40)
 
     tee_box = _extract_tee_box(hsv, proj, hole, downscale)
