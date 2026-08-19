@@ -793,20 +793,11 @@ def map_chart(
     ax.plot(px[-1], py[-1], "o", ms=7, color=p["series_1"],
             mec=p["surface"], mew=2, zorder=6)
 
-    # Origin and target: distinct shapes in ink, never a series hue. Origin
-    # is the SAME flagstick glyph as the real pin (_draw_pin_flag below),
-    # just neutral-coloured instead of red and carrying the hole number --
-    # "the flag for where you're playing hole N from," not a generic marker.
+    # Origin and target: distinct shapes in ink, never a series hue.
     ox, oy = proj.to_pixels(*data["origin_enu"])
     txp, typ = proj.to_pixels(*data["target_enu"])
-    ax.plot([ox], [oy], marker=_PIN_FLAG_MARKER, ms=15, markerfacecolor=p["surface"],
-            markeredgecolor=p["ink"], markeredgewidth=1.3, ls="none", zorder=7,
-            label="Playing from")
-    ax.annotate(
-        str(hole.number), (ox, oy), xytext=(3, 7), textcoords="offset points",
-        fontsize=7.5, fontweight="bold", color=p["ink"], ha="left", va="bottom",
-        zorder=9,
-    )
+    ax.plot([ox], [oy], marker="s", ms=7, color=p["surface"],
+            mec=p["ink"], mew=1.8, ls="none", zorder=7, label="Playing from")
     ax.plot([txp], [typ], marker="*", ms=13, color=p["surface"],
             mec=p["ink"], mew=1.8, ls="none", zorder=7, label="Target")
 
@@ -1443,14 +1434,8 @@ def _inject_style() -> None:
             border-radius: 0.5rem; overflow: hidden;
         }
         .hole-badge {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 3rem; height: 3rem; padding: 0 0.4rem;
-            background: linear-gradient(135deg, #3a9463, #204d33);
-            color: #ffffff; font-weight: 800; font-size: 1.5rem;
-            font-variant-numeric: tabular-nums;
-            border-radius: 0.9rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
-            vertical-align: middle;
+            display: inline-flex; align-items: center; vertical-align: middle;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
         }
         .hole-name {font-size: 1.4rem; font-weight: 700; vertical-align: middle;}
         .par-badge {
@@ -1551,9 +1536,19 @@ def main() -> None:
             # how wide the popover grows. st.table renders the full static
             # HTML table at its natural size instead.
             st.table(_round_scorecard(course))
+    hole_flag_svg = f'''<span class="hole-badge"><svg width="42" height="42"
+        viewBox="0 0 46 46" xmlns="http://www.w3.org/2000/svg">
+        <line x1="10" y1="4" x2="10" y2="42" stroke="#dcd6c2" stroke-width="2.5"
+              stroke-linecap="round"/>
+        <path d="M10 6 L34 15 L10 24 Z" fill="#3a9463" stroke="#173d29" stroke-width="1.2"
+              stroke-linejoin="round"/>
+        <text x="19" y="16" font-size="12" font-weight="800" fill="#ffffff"
+              text-anchor="middle" dominant-baseline="central"
+              font-family="sans-serif">{hole.number}</text>
+        </svg></span>'''
     with header_col:
         st.markdown(
-            f'<span class="hole-badge">{hole.number}</span> '
+            f'{hole_flag_svg} '
             f'<span class="hole-name">{hole.name}</span> '
             f'<span class="par-badge">Par {hole.par}</span>'
             '<div class="stat-row">'
