@@ -1422,12 +1422,42 @@ def _inject_style() -> None:
             border-radius: 0.6rem;
             padding: 0.6rem 0.9rem;
         }
-        div[data-testid="stMetricValue"] {font-weight: 700;}
-        .stButton > button, .stDownloadButton > button {
-            border-radius: 0.5rem;
-            transition: transform 0.05s ease-in-out;
+        div[data-testid="stMetricValue"] {font-weight: 400;}
+        div[data-testid="stMetricLabel"] label {
+            font-weight: 800;
+            font-size: 1.3rem;
         }
-        .stButton > button:active {transform: scale(0.98);}
+        .stButton > button, .stDownloadButton > button {
+            border-radius: 0.8rem;
+            border: none;
+            color: #ffffff;
+            font-weight: 700;
+            padding: 0.55rem 1.15rem;
+            background: linear-gradient(135deg, #2f7a4f 0%, #45b877 100%);
+            box-shadow: 0 3px 0 rgba(18, 60, 36, 0.7), 0 4px 10px rgba(0, 0, 0, 0.25);
+            transition: transform 0.08s ease-in-out, box-shadow 0.08s ease-in-out, filter 0.15s ease-in-out;
+        }
+        .stButton > button:hover, .stDownloadButton > button:hover {
+            filter: brightness(1.15) saturate(1.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 0 rgba(18, 60, 36, 0.7), 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        .stButton > button:active, .stDownloadButton > button:active {
+            transform: translateY(1px) scale(0.96);
+            filter: brightness(0.97);
+            box-shadow: 0 1px 0 rgba(18, 60, 36, 0.7), 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .stButton > button[kind="primary"], .stDownloadButton > button[kind="primary"] {
+            background: linear-gradient(135deg, #e8b923 0%, #ffd966 100%);
+            color: #1a1a19;
+            box-shadow: 0 3px 0 rgba(150, 108, 10, 0.7), 0 4px 10px rgba(0, 0, 0, 0.25);
+        }
+        .stButton > button[kind="primary"]:hover, .stDownloadButton > button[kind="primary"]:hover {
+            box-shadow: 0 5px 0 rgba(150, 108, 10, 0.7), 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        .stButton > button[kind="primary"]:active, .stDownloadButton > button[kind="primary"]:active {
+            box-shadow: 0 1px 0 rgba(150, 108, 10, 0.7), 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
         div[data-testid="stExpander"] {
             border-radius: 0.6rem;
             border: 1px solid rgba(128, 128, 128, 0.18);
