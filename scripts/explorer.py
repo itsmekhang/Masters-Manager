@@ -381,19 +381,31 @@ def fly(
         )
         vx, vy, _ = t.velocities[-1]
         horiz = float(np.hypot(vx, vy))
+        landing_z = float(t.positions[-1, 2])
         if horiz > 1e-6 and roll_yd > 0:
-            return vx / horiz * roll_yd * YARD_M, vy / horiz * roll_yd * YARD_M, roll_yd
-        return 0.0, 0.0, roll_yd
+            dx, dy = vx / horiz * roll_yd * YARD_M, vy / horiz * roll_yd * YARD_M
+        else:
+            dx, dy = 0.0, 0.0
+        # Snap the endpoint to the REAL terrain height there, not a flat
+        # continuation of the landing height -- on sloped ground a flat
+        # guess can end up below the actual surface at the rolled-out spot
+        # (uphill) or floating above it (downhill), and the below-terrain
+        # guard in trajectory.integrate() rightly rejects the former if it
+        # becomes the next shot's origin.
+        end_z = float(terrain(t.positions[-1, 0] + dx, t.positions[-1, 1] + dy))
+        return dx, dy, roll_yd, landing_z, end_z
 
     # Where the ball actually comes to REST, back in lat/lon -- this is what
     # a played shot hands to the next one as its origin, and what counts for
     # distance-to-pin. landing_geo (carry only, no roll) is kept alongside
     # for the "This shot leaves" preview line, which is about where the ball
     # first touches down, not its final position.
-    shot_roll_dx, shot_roll_dy, shot_roll_yd = roll_offset(shot)
+    shot_roll_dx, shot_roll_dy, shot_roll_yd, _, shot_roll_end_z = roll_offset(shot)
     lx, ly, lz = shot.positions[-1]
     landing_geo = frame.to_geo(float(lx), float(ly), float(lz))
-    final_geo = frame.to_geo(float(lx + shot_roll_dx), float(ly + shot_roll_dy), float(lz))
+    final_geo = frame.to_geo(
+        float(lx + shot_roll_dx), float(ly + shot_roll_dy), shot_roll_end_z,
+    )
     distance_to_pin_yd = landing_geo.distance_yards_to(hole.pin)
     total_distance_to_pin_yd = final_geo.distance_yards_to(hole.pin)
     # Where you're standing right NOW, independent of the club/target you
@@ -414,7 +426,7 @@ def fly(
     # flight -- no separate "rolling" code path needed anywhere downstream.
 
     def pack(t):
-        roll_dx, roll_dy, roll_yd = roll_offset(t)
+        roll_dx, roll_dy, roll_yd, landing_z, roll_end_z = roll_offset(t)
         x, y, z = t.positions[:, 0], t.positions[:, 1], t.positions[:, 2]
         speed = np.linalg.norm(t.velocities, axis=1)
         spin = t.spins_rpm
@@ -424,7 +436,9 @@ def fly(
             frac = np.linspace(1.0 / n_roll, 1.0, n_roll)  # excludes 0 -- landing point already the last flight sample
             x = np.concatenate([x, x[-1] + roll_dx * frac])
             y = np.concatenate([y, y[-1] + roll_dy * frac])
-            z = np.concatenate([z, np.full(n_roll, z[-1])])
+            # Interpolated to the real terrain height at the rollout point,
+            # not held flat at the landing height -- see roll_offset.
+            z = np.concatenate([z, landing_z + (roll_end_z - landing_z) * frac])
             # Decelerating roll, not a real speed -- just enough for the
             # animation and table to show something monotonically slowing
             # rather than a jump-cut. Roll takes ~1.5s, a rough ballpark.
@@ -779,11 +793,20 @@ def map_chart(
     ax.plot(px[-1], py[-1], "o", ms=7, color=p["series_1"],
             mec=p["surface"], mew=2, zorder=6)
 
-    # Origin and target: distinct shapes in ink, never a series hue.
+    # Origin and target: distinct shapes in ink, never a series hue. Origin
+    # is the SAME flagstick glyph as the real pin (_draw_pin_flag below),
+    # just neutral-coloured instead of red and carrying the hole number --
+    # "the flag for where you're playing hole N from," not a generic marker.
     ox, oy = proj.to_pixels(*data["origin_enu"])
     txp, typ = proj.to_pixels(*data["target_enu"])
-    ax.plot([ox], [oy], marker="s", ms=7, color=p["surface"],
-            mec=p["ink"], mew=1.8, ls="none", zorder=7, label="Playing from")
+    ax.plot([ox], [oy], marker=_PIN_FLAG_MARKER, ms=15, markerfacecolor=p["surface"],
+            markeredgecolor=p["ink"], markeredgewidth=1.3, ls="none", zorder=7,
+            label="Playing from")
+    ax.annotate(
+        str(hole.number), (ox, oy), xytext=(3, 7), textcoords="offset points",
+        fontsize=7.5, fontweight="bold", color=p["ink"], ha="left", va="bottom",
+        zorder=9,
+    )
     ax.plot([txp], [typ], marker="*", ms=13, color=p["surface"],
             mec=p["ink"], mew=1.8, ls="none", zorder=7, label="Target")
 
@@ -1454,20 +1477,28 @@ def _inject_style() -> None:
     )
 
 
+LOGO_PATH = Path(__file__).resolve().parents[1] / "assets" / "logo.png"
+
+
 def main() -> None:
     st.set_page_config(
-        page_title="Masters Manager — trajectory explorer", page_icon="⛳", layout="wide",
+        page_title="Masters Manager — trajectory explorer",
+        page_icon=str(LOGO_PATH) if LOGO_PATH.is_file() else "⛳",
+        layout="wide",
     )
     _inject_style()
-    st.markdown(
-        '<div style="display:flex; align-items:baseline; gap:0.6rem; '
-        'margin-bottom:0.2rem;">'
-        '<span style="font-size:1.7rem;">⛳</span>'
-        '<span style="font-size:1.7rem; font-weight:800;">Masters Manager</span>'
-        '<span style="opacity:0.6; font-size:0.95rem;">— trajectory explorer</span>'
-        "</div>",
-        unsafe_allow_html=True,
-    )
+    if LOGO_PATH.is_file():
+        st.image(str(LOGO_PATH), width=340)
+    else:
+        st.markdown(
+            '<div style="display:flex; align-items:baseline; gap:0.6rem; '
+            'margin-bottom:0.2rem;">'
+            '<span style="font-size:1.7rem;">⛳</span>'
+            '<span style="font-size:1.7rem; font-weight:800;">Masters Manager</span>'
+            '<span style="opacity:0.6; font-size:0.95rem;">— trajectory explorer</span>'
+            "</div>",
+            unsafe_allow_html=True,
+        )
     course = get_course()
 
     # Apply a hole jump queued by _advance_to_next_hole before the "Hole"
