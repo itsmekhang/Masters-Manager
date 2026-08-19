@@ -1436,11 +1436,13 @@ def _inject_style() -> None:
             border-radius: 0.5rem; overflow: hidden;
         }
         .hole-badge {
+            display: inline-block; margin-right: 1.1rem;
             vertical-align: middle;
             font-size: 1.5rem; font-weight: 800; letter-spacing: 0.02em;
             color: #3a9463;
         }
         .hole-name {
+            display: inline-block; margin-right: 1.1rem;
             font-family: 'Libre Baskerville', serif;
             font-style: italic; font-size: 1.5rem; font-weight: 700;
             vertical-align: middle;
@@ -1449,8 +1451,8 @@ def _inject_style() -> None:
             display: inline-flex; align-items: center;
             background: rgba(47, 122, 79, 0.16);
             border: 1px solid rgba(47, 122, 79, 0.4);
-            border-radius: 999px; padding: 0.15rem 0.7rem;
-            font-weight: 700; font-size: 0.85rem; vertical-align: middle;
+            border-radius: 999px; padding: 0.3rem 1.1rem;
+            font-weight: 700; font-size: 1.2rem; vertical-align: middle;
         }
         .stat-row {
             display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.55rem;
