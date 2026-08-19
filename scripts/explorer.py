@@ -1532,9 +1532,9 @@ def main() -> None:
         # rather than derived from geometry, so it is worth showing.
         difficulty_chip = (
             '<span class="stat-chip">📊 '
-            f"<b>{inf['historicalAverage']:.3f}</b> strokes "
-            f"({inf['historicalAverage'] - hole.par:+.3f} to par) · "
-            f"<b>{inf['historicalRank']}</b><sup>th</sup> hardest</span>"
+            f"{inf['historicalAverage']:.3f} <b>strokes</b> "
+            f"({inf['historicalAverage'] - hole.par:+.3f} <b>to par</b>) · "
+            f"{inf['historicalRank']}<sup>th</sup> <b>hardest</b></span>"
         )
 
     header_col, scorecard_col = st.columns([6, 1])
@@ -1552,10 +1552,10 @@ def main() -> None:
             f'<span class="par-badge">Par {hole.par}</span>'
             '<div class="stat-row">'
             f'<span class="stat-chip">🎯 {cfg["origin_name"]} → {cfg["target_name"]}</span>'
-            f'<span class="stat-chip">📏 <b>{target_yards:.0f}</b> yd on the line</span>'
-            f'<span class="stat-chip">⛰️ <b>{dz_m / FT_M:+.0f}</b> ft elevation</span>'
-            f'<span class="stat-chip">🃏 card <b>{hole.card_yardage}</b> yd</span>'
-            f'<span class="stat-chip">↩️ dogleg <b>{hole.dogleg_deg:.0f}°</b></span>'
+            f'<span class="stat-chip">📏 {target_yards:.0f} <b>yd on the line</b></span>'
+            f'<span class="stat-chip">⛰️ {dz_m / FT_M:+.0f} <b>ft elevation</b></span>'
+            f'<span class="stat-chip">🃏 <b>card</b> {hole.card_yardage} <b>yd</b></span>'
+            f'<span class="stat-chip">↩️ <b>dogleg</b> {hole.dogleg_deg:.0f}°</span>'
             f"{difficulty_chip}"
             "</div>",
             unsafe_allow_html=True,
