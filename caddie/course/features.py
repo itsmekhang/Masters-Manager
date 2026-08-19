@@ -82,9 +82,16 @@ def bunker_mask(hsv: np.ndarray) -> np.ndarray:
 
 
 def water_mask(hsv: np.ndarray) -> np.ndarray:
-    """Rae's Creek, the ponds: a distinct blue hue absent from grass/sand."""
+    """Rae's Creek, the ponds: a distinct blue hue absent from grass/sand.
+
+    Sampled directly off the artwork (hole 13's creek, which was badly
+    under-detected before this): open, sunlit water sits around h=0.55-0.56,
+    s=0.64. Shaded creek -- a narrow ribbon under trees, not the open ponds
+    -- drifts down toward h=0.40-0.45 and s as low as 0.17, close enough to
+    grass_mask's own range (h 0.16-0.45) that this can't be pushed much
+    wider without starting to catch shaded grass instead."""
     h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
-    return (h > 0.50) & (h < 0.68) & (s > 0.22)
+    return (h > 0.42) & (h < 0.68) & (s > 0.17)
 
 
 def grass_mask(hsv: np.ndarray) -> np.ndarray:
@@ -193,7 +200,19 @@ def extract_map_features(
         return out
 
     bunkers = to_enu_polys(bunker_mask(hsv), min_area_m2=8.0, max_area_m2=800.0)
-    water = to_enu_polys(water_mask(hsv), min_area_m2=20.0, max_area_m2=6000.0)
+    # A narrow, shaded creek (hole 13's, worst offender) breaks into a
+    # dotted line under color thresholding alone -- tree shadow drops its
+    # saturation below what a single hue/sat cutoff can separate from
+    # grass. Closing bridges those small gaps back into one shape using
+    # the pixels already classified as water, rather than trying to widen
+    # the color thresholds further to close them (that starts catching
+    # shaded grass instead -- see water_mask). A light erosion afterward
+    # trims the anti-aliased fringe closing just added back, mainly around
+    # the open ponds.
+    from scipy import ndimage as ndi
+    water_closed = ndi.binary_closing(water_mask(hsv), iterations=6)
+    water_eroded = ndi.binary_erosion(water_closed, iterations=1)
+    water = to_enu_polys(water_eroded, min_area_m2=20.0, max_area_m2=6000.0)
     trees = to_enu_polys(tree_mask(hsv), min_area_m2=25.0, max_area_m2=600.0, max_n=40)
 
     tee_box = _extract_tee_box(hsv, proj, hole, downscale)

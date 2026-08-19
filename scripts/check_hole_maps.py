@@ -32,7 +32,7 @@ from PIL import Image
 from caddie.course import load_augusta
 from caddie.course.maps import MapProjection, load_hole_info, load_hole_maps
 
-OUT = Path(__file__).resolve().parents[1] / "artifacts" / "hole_maps_check.png"
+OUT = Path(__file__).resolve().parents[1] / "hole diagrams" / "hole_maps_check.png"
 
 
 def main() -> None:

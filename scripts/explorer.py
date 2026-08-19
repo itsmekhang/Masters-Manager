@@ -69,6 +69,11 @@ GREEN_RADIUS_YD = 20.0
 # The zoom crop is wider than the trigger radius so a ball that just crossed
 # the threshold still has margin around it instead of sitting on the edge.
 GREEN_ZOOM_RADIUS_YD = 32.0
+# Static highlight, not animated -- an earlier pulsing version (rerun loop,
+# then a CSS crossfade) kept costing either page responsiveness or display
+# size in ways not worth it next to a plain, always-on tint (see map_chart's
+# docstring history for what was tried).
+WATER_HIGHLIGHT_ALPHA = 0.4
 # A shot landing this close to the pin counts as holed outright -- no putting
 # step needed. Generous on purpose: terrain is interpolated between a handful
 # of surveyed points (see caveats), nowhere near precise enough for a real
@@ -130,6 +135,14 @@ PALETTES = {
         "terrain": "#2c2c2a",
     },
 }
+
+def _lighten(hex_color: str, amount: float = 0.45) -> str:
+    """Blend a hex colour toward white -- used to mark the rolled-out part
+    of a shot's track on the map, one step lighter than its flight colour."""
+    r, g, b = (int(hex_color[i : i + 2], 16) for i in (1, 3, 5))
+    r, g, b = (round(c + (255 - c) * amount) for c in (r, g, b))
+    return f"#{r:02x}{g:02x}{b:02x}"
+
 
 SHELTER_PRESETS = {
     "Sheltered corridor (pines both sides)": AUGUSTA_SHELTERED_CORRIDOR,
@@ -737,11 +750,15 @@ def map_chart(
     """The shot drawn on the illustrated hole map.
 
     The map is the figure -- no axes, no grid, no invented chrome on top of
-    someone's artwork. Only the marks that carry information go on: the flight
-    path, where it finishes, the tee and pin as located by the georeference,
-    and (if given) detected water hazards -- the one hazard colour-distinct
-    enough from grass/sand/trees to segment reliably (see
-    caddie.course.features.water_mask).
+    someone's artwork. Only the marks that carry information go on: the
+    flight path, where it finishes, the tee and pin as located by the
+    georeference, and (if given) detected water hazards -- the one hazard
+    colour-distinct enough from grass/sand/trees to segment reliably (see
+    caddie.course.features.water_mask). Two different animated/CSS-driven
+    approaches to a *pulsing* highlight were tried and both reverted --
+    either a full-page rerun loop or a browser-side layering trick, and both
+    ended up costing more (responsiveness, or unreliable sizing) than a
+    plain static tint was worth. ``water_alpha`` is just a fixed value now.
 
     ``until_idx`` truncates "this shot"'s track to that sample, with the ball
     marker riding the tip instead of sitting at the landing spot -- the
@@ -757,7 +774,27 @@ def map_chart(
     animating = until_idx is not None
     i = (until_idx + 1) if animating else len(data["shot_enu"])
 
-    fig, ax = plt.subplots(figsize=(11, 11 * H / W), facecolor=p["surface"])
+    # Decide the view window before the figure exists, and size the figure
+    # to match its aspect ratio exactly. imshow enforces equal aspect by
+    # default, so a figure sized for the *full* image but displaying a
+    # square zoomed crop (zoom_radius_yd) would get shrunk/letterboxed
+    # inside its own axes at draw time -- silently moving the axes' real
+    # on-canvas box away from the full-bleed (0,0)-(1,1) position=[...]
+    # below sets, throwing off the water overlay's coordinate math. Matching
+    # figsize to the window up front means there's never a mismatch to
+    # correct for.
+    if zoom_radius_yd is not None:
+        cx, cy = proj.geo_to_pixels(hole.pin)
+        r_px = (zoom_radius_yd * YARD_M) / proj.metres_per_pixel
+        view_x0, view_x1 = cx - r_px, cx + r_px
+        view_y0, view_y1 = cy - r_px, cy + r_px  # top, bottom (image space)
+    else:
+        view_x0, view_x1 = 0, W
+        view_y0, view_y1 = 0, H
+    view_w = view_x1 - view_x0
+    view_h = view_y1 - view_y0
+
+    fig, ax = plt.subplots(figsize=(11, 11 * view_h / view_w), facecolor=p["surface"])
     # Nearest while playing -- cheaper resampling, and at animation speed the
     # difference isn't visible anyway. Bilinear for the static frame you
     # actually sit and look at.
@@ -766,16 +803,13 @@ def map_chart(
 
     # Detected water hazards, drawn under everything else -- yellow/red like
     # real water-hazard stakes, not the sampled creek-blue, so it reads as a
-    # highlight/warning rather than decoration. water_alpha is a continuous
-    # 0 -> 0.5 -> 0 pulse driven by wall-clock time (see main()'s rerun loop
-    # below), not a fixed value -- the "Pulse water hazards" checkbox is a
-    # toggle, not a one-shot flash. Colour-segmented, not surveyed: expect
-    # rough edges and the odd shadow-split creek into two blobs (see
-    # caddie.course.features).
+    # highlight/warning rather than decoration. Colour-segmented, not
+    # surveyed: expect rough edges and the odd shadow-split creek into two
+    # blobs (see caddie.course.features).
     for poly in water or []:
         wx, wy = zip(*[proj.to_pixels(e, n) for e, n in poly])
         ax.fill(wx, wy, facecolor="#f5d130", edgecolor="#d3271f",
-                linewidth=1.4, alpha=water_alpha, zorder=2)
+                linewidth=2.4, alpha=water_alpha, zorder=2)
 
     def track(enu):
         px, py = zip(*[proj.to_pixels(e, n) for e, n in enu])
@@ -788,9 +822,19 @@ def map_chart(
         ax.plot(px[-1], py[-1], "o", ms=6, color=p["series_2"],
                 mec=p["surface"], mew=2, zorder=5)
 
-    px, py = track(data["shot_enu"][:i])
+    # Split at the landing sample so the rolled-out tail reads as roll, not
+    # more flight -- a lighter tint of the same series colour rather than a
+    # second legend entry, since it's still "my shot," just on the ground.
+    shot_track = data["shot_enu"][:i]
+    n_flight = min(data["shot"]["n_flight_samples"], len(shot_track))
+    px, py = track(shot_track[:n_flight])
     ax.plot(px, py, color=p["series_1"], lw=2.5, zorder=4, label="My Shot")
-    ax.plot(px[-1], py[-1], "o", ms=7, color=p["series_1"],
+    last_px, last_py = px[-1], py[-1]
+    if len(shot_track) > n_flight:
+        rpx, rpy = track(shot_track[n_flight - 1:])
+        ax.plot(rpx, rpy, color=_lighten(p["series_1"]), lw=2.5, zorder=4)
+        last_px, last_py = rpx[-1], rpy[-1]
+    ax.plot([last_px], [last_py], "o", ms=7, color=p["series_1"],
             mec=p["surface"], mew=2, zorder=6)
 
     # Origin and target: distinct shapes in ink, never a series hue.
@@ -809,15 +853,12 @@ def map_chart(
         for t in leg.get_texts():
             t.set_color(p["ink_2"])
 
-    if zoom_radius_yd is not None:
-        cx, cy = proj.geo_to_pixels(hole.pin)
-        r_px = (zoom_radius_yd * YARD_M) / proj.metres_per_pixel
-        ax.set_xlim(cx - r_px, cx + r_px)
-        ax.set_ylim(cy + r_px, cy - r_px)
-    else:
-        ax.set_xlim(0, W)
-        ax.set_ylim(H, 0)
-    fig.tight_layout(pad=0.2)
+    ax.set_xlim(view_x0, view_x1)
+    ax.set_ylim(view_y1, view_y0)  # inverted: image y grows downward
+    # Full-bleed: no blank figure margin around the artwork. Safe now that
+    # figsize already matches this view window's aspect ratio (set above),
+    # so imshow's equal-aspect constraint has nothing to shrink/letterbox.
+    ax.set_position([0, 0, 1, 1])
     return fig
 
 
@@ -838,12 +879,17 @@ def trajectory_table(data, every_s: float = 0.25):
     }
 
 
-def _round_scorecard(course) -> dict:
-    """Wide scorecard: rows Par/Score/+/-, columns per hole plus OUT/IN/TOTAL.
+def _scorecard_html(course, course_name: str = "Augusta National Golf Club") -> str:
+    """A clubhouse-style card: cream stock, serif numerals, circled birdies
+    and boxed bogeys, laid out like an actual scorecard (two 9-hole rows)
+    instead of a bare grid.
 
-    A hole only counts once its last saved shot is holed -- an in-progress
-    hole shows as blank rather than a partial stroke count that would read
-    as a finished score.
+    Built as flat, unindented strings on purpose: Markdown treats any line
+    indented 4+ spaces as a code block, and st.markdown() runs content
+    through a Markdown parser even with unsafe_allow_html=True -- a
+    "nicely" indented multi-line string here would get swallowed into a
+    code block instead of rendering as HTML (bit this app once already,
+    see map_chart's history for the water-overlay version of the same bug).
     """
     shots_by_hole = st.session_state.get("shots", {})
     holes = course.holes
@@ -858,26 +904,92 @@ def _round_scorecard(course) -> dict:
         played = [v for v in vals if v is not None]
         return sum(played) if played else None
 
-    def fmt(v: int | None) -> str:
-        return "–" if v is None else str(v)
-
-    def fmt_diff(score: int | None, par: int) -> str:
-        return "–" if score is None else f"{score - par:+d}"
-
     scores = [hole_score(h) for h in holes]
     front, back = holes[:9], holes[9:]
     out_par, in_par = sum(h.par for h in front), sum(h.par for h in back)
     out_score, in_score = total(scores[:9]), total(scores[9:])
     total_par, total_score = out_par + in_par, total(scores)
 
-    data: dict[str, list[str]] = {"": ["Par", "Score", "+/-"]}
-    for h, score in zip(holes, scores):
-        data[str(h.number)] = [str(h.par), fmt(score), fmt_diff(score, h.par)]
-        if h.number == 9:
-            data["OUT"] = [str(out_par), fmt(out_score), fmt_diff(out_score, out_par)]
-    data["IN"] = [str(in_par), fmt(in_score), fmt_diff(in_score, in_par)]
-    data["TOTAL"] = [str(total_par), fmt(total_score), fmt_diff(total_score, total_par)]
-    return data
+    def mark_class(score: int | None, par: int) -> str:
+        if score is None:
+            return "sc-blank"
+        diff = score - par
+        if diff <= -2:
+            return "sc-eagle"
+        if diff == -1:
+            return "sc-birdie"
+        if diff == 0:
+            return "sc-par"
+        if diff == 1:
+            return "sc-bogey"
+        return "sc-double"
+
+    def score_html(score: int | None, par: int) -> str:
+        cls = mark_class(score, par)
+        text = "–" if score is None else str(score)
+        return f'<td class="sc-cell sc-score {cls}"><span class="sc-mark">{text}</span></td>'
+
+    def diff_text(score: int | None, par: int) -> str:
+        return "–" if score is None else f"{score - par:+d}"
+
+    def nine_table(nine_holes, nine_scores, summary_label, summary_par, summary_score) -> str:
+        hole_cells = "".join(f'<td class="sc-cell sc-hole">{h.number}</td>' for h in nine_holes)
+        par_cells = "".join(f'<td class="sc-cell sc-par">{h.par}</td>' for h in nine_holes)
+        score_cells = "".join(score_html(s, h.par) for h, s in zip(nine_holes, nine_scores))
+        diff_cells = "".join(
+            f'<td class="sc-cell sc-diff">{diff_text(s, h.par)}</td>'
+            for h, s in zip(nine_holes, nine_scores)
+        )
+        return (
+            '<table class="sc-table">'
+            f'<tr><td class="sc-cell sc-label">Hole</td>{hole_cells}'
+            f'<td class="sc-cell sc-label sc-summary">{summary_label}</td></tr>'
+            f'<tr><td class="sc-cell sc-label">Par</td>{par_cells}'
+            f'<td class="sc-cell sc-par sc-summary">{summary_par}</td></tr>'
+            f'<tr><td class="sc-cell sc-label">Score</td>{score_cells}'
+            f'<td class="sc-cell sc-score sc-summary">{"–" if summary_score is None else summary_score}</td></tr>'
+            f'<tr><td class="sc-cell sc-label">+/-</td>{diff_cells}'
+            f'<td class="sc-cell sc-diff sc-summary">{diff_text(summary_score, summary_par)}</td></tr>'
+            "</table>"
+        )
+
+    style = (
+        ".sc-card{background:#f6f0dc;border:1px solid #9c8a55;border-radius:0.5rem;"
+        'padding:1rem 1.1rem;font-family:"Libre Baskerville",serif;color:#1f2e22;}'
+        ".sc-title{text-align:center;font-style:italic;font-weight:700;font-size:1.05rem;"
+        "letter-spacing:0.03em;margin-bottom:0.7rem;color:#1f2e22;}"
+        ".sc-table{border-collapse:collapse;width:100%;margin-bottom:0.6rem;}"
+        ".sc-table:last-child{margin-bottom:0;}"
+        ".sc-cell{border:1px solid #cdbf8f;text-align:center;padding:0.25rem 0.4rem;"
+        "min-width:1.6rem;font-size:0.85rem;}"
+        ".sc-label{text-align:left;font-weight:700;background:#1f4d33;color:#f6f0dc;"
+        "font-style:italic;}"
+        ".sc-hole{background:#1f4d33;color:#f6f0dc;font-weight:700;}"
+        ".sc-summary{font-weight:700;background:#e9dfc0;}"
+        ".sc-mark{display:inline-flex;align-items:center;justify-content:center;"
+        "width:1.5rem;height:1.5rem;border-radius:50%;}"
+        ".sc-eagle .sc-mark{border:2px solid #b8860b;box-shadow:0 0 0 4px rgba(184,134,11,0.15) inset;"
+        "color:#8a6400;font-weight:700;}"
+        ".sc-birdie .sc-mark{border:2px solid #1f4d33;color:#1f4d33;font-weight:700;}"
+        ".sc-par .sc-mark{color:#1f2e22;}"
+        ".sc-bogey .sc-mark{border:2px solid #8c2f2f;border-radius:0.2rem;color:#8c2f2f;font-weight:700;}"
+        ".sc-double .sc-mark{border:2px solid #8c2f2f;border-radius:0.2rem;"
+        "box-shadow:0 0 0 3px rgba(140,47,47,0.18) inset;color:#8c2f2f;font-weight:700;}"
+        ".sc-blank .sc-mark{color:#a89f7e;}"
+    )
+    return (
+        '<div class="sc-card">'
+        f"<style>{style}</style>"
+        f'<div class="sc-title">{course_name}</div>'
+        f"{nine_table(front, scores[:9], 'OUT', out_par, out_score)}"
+        f"{nine_table(back, scores[9:], 'IN', in_par, in_score)}"
+        f'<div class="sc-table" style="border:1px solid #cdbf8f;border-radius:0.3rem;'
+        f'padding:0.35rem;text-align:center;font-weight:700;">'
+        f"Total {total_score if total_score is not None else '–'} "
+        f"({diff_text(total_score, total_par)}) &nbsp;·&nbsp; Par {total_par}"
+        "</div>"
+        "</div>"
+    )
 
 
 def _advance_to_next_hole(course, current_number: int) -> None:
@@ -992,6 +1104,24 @@ def sidebar(course):
         mode = "dark" if detected == "dark" else "light"
     else:
         mode = mode_choice.lower()
+
+    show_calm = st.checkbox(
+        "Overlay the unshaped Default Trajectory", value=True,
+        help="The plain stock swing, aimed at the same target, with no "
+             "curve/flighting/face-path applied and no correction for wind.",
+    )
+    show_map = st.checkbox(
+        "Draw the shot on the hole map", value=True,
+        help="Uncheck for the abstract plan view, which has a readable "
+             "offline scale. The map is an illustration, georeferenced by eye.",
+    )
+    show_water = st.checkbox(
+        "Highlight water hazards", value=True,
+        help="Colour-segmented from the map artwork, not surveyed -- expect "
+             "rough edges and the odd creek split into a couple of pieces by "
+             "shadow. See caddie.course.features.water_mask. A static tint, "
+             "drawn straight into the map -- no animation, no extra cost.",
+    )
 
     st.subheader("⛳ Hole")
     numbers = [h.number for h in course.holes]
@@ -1349,26 +1479,6 @@ def sidebar(course):
     )
     firmness = firmness_presets[firmness_label]
 
-    show_calm = st.checkbox(
-        "Overlay the unshaped Default Trajectory", value=True,
-        help="The plain stock swing, aimed at the same target, with no "
-             "curve/flighting/face-path applied and no correction for wind.",
-    )
-    show_map = st.checkbox(
-        "Draw the shot on the hole map", value=True,
-        help="Uncheck for the abstract plan view, which has a readable "
-             "offline scale. The map is an illustration, georeferenced by eye.",
-    )
-    show_water = st.checkbox(
-        "Pulse water hazards", value=True,
-        help="Colour-segmented from the map artwork, not surveyed -- expect "
-             "rough edges and the odd creek split into a couple of pieces by "
-             "shadow. See caddie.course.features.water_mask. While this is "
-             "on, the page auto-refreshes to animate the pulse, which costs "
-             "some responsiveness elsewhere -- leave it off unless you're "
-             "actively looking for hazards.",
-    )
-
     def to_point(geo):
         return (geo.lat, geo.lon, geo.elevation_m)
 
@@ -1512,7 +1622,16 @@ def main() -> None:
     )
     _inject_style()
     if LOGO_PATH.is_file():
-        st.image(str(LOGO_PATH), width=340)
+        logo_col, motto_col = st.columns([1, 3], vertical_alignment="center")
+        with logo_col:
+            st.image(str(LOGO_PATH), width=340)
+        with motto_col:
+            st.markdown(
+                '<span style="font-family: \'Libre Baskerville\', serif; '
+                'font-style: italic; font-weight: 700; font-size: 1.6rem; '
+                'color: #c9a635;">The Ultimate Augusta National Scorecard</span>',
+                unsafe_allow_html=True,
+            )
     else:
         st.markdown(
             '<div style="display:flex; align-items:baseline; gap:0.6rem; '
@@ -1520,6 +1639,9 @@ def main() -> None:
             '<span style="font-size:1.7rem;">⛳</span>'
             '<span style="font-size:1.7rem; font-weight:800;">Masters Manager</span>'
             '<span style="opacity:0.6; font-size:0.95rem;">— trajectory explorer</span>'
+            '<span style="font-family: \'Libre Baskerville\', serif; font-style: italic; '
+            'font-size: 1.2rem; color: #c9a635; margin-left: 0.8rem;">'
+            "The Ultimate Augusta National Scorecard</span>"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -1570,11 +1692,7 @@ def main() -> None:
     header_col, scorecard_col = st.columns([6, 1])
     with scorecard_col:
         with st.popover("📇 Scorecard", use_container_width=True):
-            # st.table, not st.dataframe: the dataframe widget virtualizes
-            # into a fixed-size viewport with its own scrollbars no matter
-            # how wide the popover grows. st.table renders the full static
-            # HTML table at its natural size instead.
-            st.table(_round_scorecard(course))
+            st.markdown(_scorecard_html(course), unsafe_allow_html=True)
     with header_col:
         st.markdown(
             f'<span class="hole-badge">No. {hole.number}</span> '
@@ -1739,17 +1857,6 @@ def main() -> None:
     hole_map = get_hole_maps().get(hole.number)
     has_map = hole_map is not None and hole_map.exists() and cfg["show_map"]
     hole_water = get_hole_water(hole.number) if has_map and cfg["show_water"] else []
-    # Continuous 0 -> peak -> 0 triangle wave, driven by wall-clock time so
-    # its speed doesn't depend on how often the page happens to rerun.
-    # Streamlit has no background animation -- the rerun loop at the bottom
-    # of this function is what actually keeps this moving.
-    if hole_water:
-        _WATER_PULSE_PERIOD_S = 2.4
-        _WATER_PULSE_PEAK = 0.2
-        _phase = (time.time() % _WATER_PULSE_PERIOD_S) / _WATER_PULSE_PERIOD_S
-        water_alpha = (1.0 - abs(2.0 * _phase - 1.0)) * _WATER_PULSE_PEAK
-    else:
-        water_alpha = 0.0
     on_green = data["total_distance_to_pin_yd"] <= GREEN_RADIUS_YD
     # Putting only kicks in for a shot you've actually committed (Save), not
     # just one you're still previewing -- it changes your score.
@@ -1786,8 +1893,9 @@ def main() -> None:
         # positions, just cropped tighter.
         st.pyplot(
             map_chart(
-                data, p, hole, hole_map, show_calm, zoom_radius_yd=GREEN_ZOOM_RADIUS_YD,
-                water=hole_water, water_alpha=water_alpha,
+                data, p, hole, hole_map, show_calm,
+                zoom_radius_yd=GREEN_ZOOM_RADIUS_YD,
+                water=hole_water, water_alpha=WATER_HIGHLIGHT_ALPHA,
             ),
             clear_figure=True,
         )
@@ -1802,7 +1910,10 @@ def main() -> None:
                 st.image(str(green_path), width="stretch")
     elif has_map and not animated_map:
         st.pyplot(
-            map_chart(data, p, hole, hole_map, show_calm, water=hole_water, water_alpha=water_alpha),
+            map_chart(
+                data, p, hole, hole_map, show_calm,
+                water=hole_water, water_alpha=WATER_HIGHLIGHT_ALPHA,
+            ),
             clear_figure=True,
         )
 
@@ -1821,7 +1932,7 @@ def main() -> None:
             default_putts = random.choice([1, 2])
         else:
             default_putts = 2
-        pc = st.columns([2, 2, 4])
+        pc = st.columns([2, 2])
         putts = pc[0].selectbox(
             "Putts to finish", [1, 2, 3, 4],
             index=[1, 2, 3, 4].index(default_putts), key="putts_select",
@@ -1840,10 +1951,6 @@ def main() -> None:
             ))
             _advance_to_next_hole(course, hole.number)
             st.rerun()
-        pc[2].caption(
-            "Putting isn't modeled — see caveats. This records a declared "
-            "result rather than simulating the green."
-        )
 
     if not animated_elevation:
         st.pyplot(elevation_chart(data, p, show_calm), clear_figure=True)
@@ -1880,14 +1987,6 @@ def main() -> None:
         ):
             st.markdown(CAVEATS)
 
-    if hole_water:
-        # What actually makes the pulse "continuous": Streamlit has no
-        # background animation, so this reruns the whole script on a short
-        # timer for as long as "Pulse water hazards" stays checked. That's a
-        # real cost -- every rerun redraws the entire page, not just the
-        # water -- which is why the checkbox defaults off and says so.
-        time.sleep(0.05)
-        st.rerun()
 
 
 if __name__ == "__main__":

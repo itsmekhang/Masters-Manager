@@ -9,6 +9,7 @@ __pycache__/
 # Local scratch / debug output
 artifacts/
 scripts/.cache/
+bugs/
 
 # Editor/OS cruft
 .DS_Store
