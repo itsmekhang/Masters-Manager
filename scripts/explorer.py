@@ -1434,8 +1434,9 @@ def _inject_style() -> None:
             border-radius: 0.5rem; overflow: hidden;
         }
         .hole-badge {
-            display: inline-flex; align-items: center; vertical-align: middle;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+            vertical-align: middle;
+            font-size: 1.5rem; font-weight: 800; letter-spacing: 0.02em;
+            color: #3a9463;
         }
         .hole-name {font-size: 1.4rem; font-weight: 700; vertical-align: middle;}
         .par-badge {
@@ -1536,19 +1537,9 @@ def main() -> None:
             # how wide the popover grows. st.table renders the full static
             # HTML table at its natural size instead.
             st.table(_round_scorecard(course))
-    hole_flag_svg = f'''<span class="hole-badge"><svg width="42" height="42"
-        viewBox="0 0 46 46" xmlns="http://www.w3.org/2000/svg">
-        <line x1="10" y1="4" x2="10" y2="42" stroke="#dcd6c2" stroke-width="2.5"
-              stroke-linecap="round"/>
-        <path d="M10 6 L34 15 L10 24 Z" fill="#3a9463" stroke="#173d29" stroke-width="1.2"
-              stroke-linejoin="round"/>
-        <text x="19" y="16" font-size="12" font-weight="800" fill="#ffffff"
-              text-anchor="middle" dominant-baseline="central"
-              font-family="sans-serif">{hole.number}</text>
-        </svg></span>'''
     with header_col:
         st.markdown(
-            f'{hole_flag_svg} '
+            f'<span class="hole-badge">No. {hole.number}</span> '
             f'<span class="hole-name">{hole.name}</span> '
             f'<span class="par-badge">Par {hole.par}</span>'
             '<div class="stat-row">'
