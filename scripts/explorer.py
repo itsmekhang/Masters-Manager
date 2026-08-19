@@ -1456,9 +1456,18 @@ def _inject_style() -> None:
 
 def main() -> None:
     st.set_page_config(
-        page_title="AI Caddie — trajectory explorer", page_icon="⛳", layout="wide",
+        page_title="Masters Manager — trajectory explorer", page_icon="⛳", layout="wide",
     )
     _inject_style()
+    st.markdown(
+        '<div style="display:flex; align-items:baseline; gap:0.6rem; '
+        'margin-bottom:0.2rem;">'
+        '<span style="font-size:1.7rem;">⛳</span>'
+        '<span style="font-size:1.7rem; font-weight:800;">Masters Manager</span>'
+        '<span style="opacity:0.6; font-size:0.95rem;">— trajectory explorer</span>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
     course = get_course()
 
     # Apply a hole jump queued by _advance_to_next_hole before the "Hole"

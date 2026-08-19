@@ -1,4 +1,4 @@
-# AI Caddie — Physics + Augusta National model
+# Masters Manager — Physics + Augusta National model
 
 Foundation layer for a shot-recommendation engine: a validated ball-flight
 physics model and a validated geometric model of Augusta National.
