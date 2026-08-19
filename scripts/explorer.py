@@ -1561,6 +1561,18 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
+    # Available any time, not just once you're actually on the green -- for
+    # scouting ahead. Pure decoration: this artwork has no georeference of
+    # its own (see caveats), so it's never wired to your ball or the pin,
+    # unlike the on-green zoomed map view further down which is.
+    _preview_green_path = get_hole_maps().get(hole.number)
+    _preview_green_path = (
+        _preview_green_path.green_image_path if _preview_green_path is not None else None
+    )
+    if _preview_green_path is not None and _preview_green_path.is_file():
+        with st.expander("👀 Look at the green (illustration only — just for show)"):
+            st.image(str(_preview_green_path), width="stretch")
+
     sh = data["shaping"]
     if sh.get("error"):
         st.warning(f"Shape not reachable — {sh['error']}")
