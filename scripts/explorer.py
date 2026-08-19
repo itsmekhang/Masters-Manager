@@ -1403,7 +1403,7 @@ def _inject_style() -> None:
     ``primaryColor`` is pinned, in .streamlit/config.toml)."""
     st.markdown(
         """
-        <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap"
+        <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap"
               rel="stylesheet">
         <style>
         .block-container {padding-top: 1.5rem; padding-bottom: 2.5rem;}
@@ -1440,14 +1440,17 @@ def _inject_style() -> None:
             font-size: 1.5rem; font-weight: 800; letter-spacing: 0.02em;
             color: #3a9463;
         }
-        .hole-name {font-size: 1.4rem; font-weight: 700; vertical-align: middle;}
+        .hole-name {
+            font-family: 'Libre Baskerville', serif;
+            font-style: italic; font-size: 1.5rem; font-weight: 700;
+            vertical-align: middle;
+        }
         .par-badge {
             display: inline-flex; align-items: center;
             background: rgba(47, 122, 79, 0.16);
             border: 1px solid rgba(47, 122, 79, 0.4);
-            border-radius: 999px; padding: 0.1rem 0.85rem;
-            font-family: 'Dancing Script', cursive;
-            font-weight: 700; font-size: 1.3rem; vertical-align: middle;
+            border-radius: 999px; padding: 0.15rem 0.7rem;
+            font-weight: 700; font-size: 0.85rem; vertical-align: middle;
         }
         .stat-row {
             display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.55rem;
