@@ -206,13 +206,30 @@ def extract_map_features(
     # grass. Closing bridges those small gaps back into one shape using
     # the pixels already classified as water, rather than trying to widen
     # the color thresholds further to close them (that starts catching
-    # shaded grass instead -- see water_mask). A light erosion afterward
-    # trims the anti-aliased fringe closing just added back, mainly around
-    # the open ponds.
+    # shaded grass instead -- see water_mask).
+    #
+    # Strong enough closing to bridge the creek's worst gaps also invents
+    # small false ponds elsewhere (a single stray shadow pixel, dilated by
+    # closing into something just over the area floor below) -- on holes
+    # with no water at all. The fix isn't less closing (that just brings
+    # the creek gaps back); it's requiring that a surviving blob actually
+    # BE mostly real water, not mostly gap-filled by closing. A manufactured
+    # false pond is nearly all closing, almost none of it raw pixels; a
+    # real creek segment with a few shadow-dropped gaps is still mostly
+    # raw. Erosion afterward trims the anti-aliased fringe back down,
+    # mainly around the open ponds.
     from scipy import ndimage as ndi
-    water_closed = ndi.binary_closing(water_mask(hsv), iterations=6)
+    water_raw = water_mask(hsv)
+    water_closed = ndi.binary_closing(water_raw, iterations=9)
     water_eroded = ndi.binary_erosion(water_closed, iterations=1)
-    water = to_enu_polys(water_eroded, min_area_m2=20.0, max_area_m2=6000.0)
+    labeled, n_components = ndi.label(water_eroded)
+    water_filtered = np.zeros_like(water_eroded)
+    for i in range(1, n_components + 1):
+        component = labeled == i
+        raw_fraction = water_raw[component].sum() / component.sum()
+        if raw_fraction >= 0.3:
+            water_filtered |= component
+    water = to_enu_polys(water_filtered, min_area_m2=20.0, max_area_m2=6000.0)
     trees = to_enu_polys(tree_mask(hsv), min_area_m2=25.0, max_area_m2=600.0, max_n=40)
 
     tee_box = _extract_tee_box(hsv, proj, hole, downscale)
