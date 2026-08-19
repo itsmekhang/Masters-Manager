@@ -627,8 +627,8 @@ def elevation_chart(
     if water and hole is not None:
         water_mask_x = _water_crossings_x(water, data["frame"], hole.tee, data["ground_x"])
         ax.fill_between(
-            gx, floor, gz, where=water_mask_x, color="#f5d130",
-            edgecolor="#d3271f", linewidth=1.2, alpha=0.75, zorder=1.5,
+            gx, floor, gz, where=water_mask_x, color="#2e7fbf",
+            edgecolor="#1a4a72", linewidth=1.2, alpha=0.75, zorder=1.5,
             interpolate=True,
         )
     ax.plot(gx, gz, color=p["axis"], linewidth=1.0, zorder=2)
@@ -1922,7 +1922,9 @@ def main() -> None:
             )
             animated_map = True
         builders.append(
-            lambda idx: elevation_chart(data, p, show_calm, until_idx=idx)
+            lambda idx: elevation_chart(
+                data, p, show_calm, until_idx=idx, hole=hole, water=hole_water,
+            )
         )
         animated_elevation = True
         _play_animation(builders, n_samples)
