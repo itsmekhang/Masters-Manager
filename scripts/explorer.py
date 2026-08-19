@@ -36,6 +36,7 @@ from caddie.course.features import extract_map_features
 from caddie.course.maps import (
     MapProjection,
     enu_offset,
+    geo_from_enu,
     load_hole_info,
     load_hole_maps,
 )
@@ -501,6 +502,7 @@ def fly(
         "origin_enu": enu_offset(hole.tee, origin),
         "target_enu": enu_offset(hole.tee, target),
         "route_enu": [enu_offset(hole.tee, p) for p in hole.route_points],
+        "frame": frame,
         "target_local": (tx, ty, tz),
         "ground_x": ground_x,
         "ground_z": ground_z,
@@ -571,12 +573,42 @@ def _legend(ax, p):
         t.set_color(p["ink_2"])
 
 
-def elevation_chart(data, p, show_calm: bool = True, until_idx: int | None = None):
+def _water_crossings_x(water, frame, tee, ground_x):
+    """Where, along THIS shot's own line (offline = 0), a water-hazard
+    polygon is underfoot -- a boolean mask over ``ground_x`` matching the
+    map's water polygons (ENU metres relative to the tee) to the elevation
+    chart's downrange axis, so the two views agree on where the hazard is
+    instead of the side view just not knowing about it.
+
+    Necessarily a simplification: a hazard can cross the map to one side of
+    where this particular shot is aimed and still show here if the shot's
+    straight-line path (not its actual curved/offline track) happens to
+    pass over it -- the elevation view has no lateral axis to be more
+    precise than that.
+    """
+    mask = np.zeros_like(ground_x, dtype=bool)
+    if not water:
+        return mask
+    pts = np.column_stack([ground_x, np.zeros_like(ground_x)])
+    for poly in water:
+        local_xy = [frame.to_local(geo_from_enu(tee, e, n))[:2] for e, n in poly]
+        mask |= MplPath(local_xy).contains_points(pts)
+    return mask
+
+
+def elevation_chart(
+    data, p, show_calm: bool = True, until_idx: int | None = None,
+    hole=None, water: list | None = None,
+):
     """Side elevation: height against downrange, over the real ground profile.
 
     ``until_idx`` draws the shot trajectory only up to that sample, with a
     ball marker at the tip -- the mid-flight frame used by the animation.
     ``None`` (the default) draws the full, completed flight.
+
+    ``hole``/``water`` (the same ENU water polygons the map draws) add a
+    highlighted band along the ground wherever this shot's direct line
+    crosses one -- see ``_water_crossings_x`` for what "crosses" means here.
     """
     shot, calm = data["shot"], data["calm"]
     tx, ty, tz = data["target_local"]
@@ -592,6 +624,13 @@ def elevation_chart(data, p, show_calm: bool = True, until_idx: int | None = Non
     floor = min(gz.min(), 0.0) - 0.08 * (top - min(gz.min(), 0.0))
 
     ax.fill_between(gx, floor, gz, color=p["terrain"], linewidth=0, zorder=1)
+    if water and hole is not None:
+        water_mask_x = _water_crossings_x(water, data["frame"], hole.tee, data["ground_x"])
+        ax.fill_between(
+            gx, floor, gz, where=water_mask_x, color="#f5d130",
+            edgecolor="#d3271f", linewidth=1.2, alpha=0.75, zorder=1.5,
+            interpolate=True,
+        )
     ax.plot(gx, gz, color=p["axis"], linewidth=1.0, zorder=2)
 
     if show_calm and not animating:
@@ -1955,7 +1994,10 @@ def main() -> None:
             st.rerun()
 
     if not animated_elevation:
-        st.pyplot(elevation_chart(data, p, show_calm), clear_figure=True)
+        st.pyplot(
+            elevation_chart(data, p, show_calm, hole=hole, water=hole_water),
+            clear_figure=True,
+        )
     if not has_map:
         # The map already shows the ground track; the abstract plan view is a
         # fallback for holes with no diagram, and a way to read exact offline.

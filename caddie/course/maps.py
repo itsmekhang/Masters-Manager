@@ -52,6 +52,18 @@ def enu_offset(origin: GeoPoint, point: GeoPoint) -> tuple[float, float]:
     )
 
 
+def geo_from_enu(origin: GeoPoint, east: float, north: float) -> GeoPoint:
+    """Inverse of :func:`enu_offset`: (east, north) metres relative to
+    ``origin`` -> a GeoPoint, at ``origin``'s elevation (no polygon here --
+    water-hazard rings, the main caller -- carries its own height)."""
+    m_lat, m_lon = local_metres_per_degree(origin.lat)
+    return GeoPoint(
+        lat=origin.lat + north / m_lat,
+        lon=origin.lon + east / m_lon,
+        elevation_m=origin.elevation_m,
+    )
+
+
 @dataclass(frozen=True)
 class HoleMap:
     """A hole illustration plus the two reference points that locate it.
