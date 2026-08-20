@@ -1061,7 +1061,7 @@ def _advance_to_next_hole(course, current_number: int) -> None:
         st.session_state["_next_hole"] = numbers[idx + 1]
 
 
-def _flight_engine_html(data, p, height_px: int = 620) -> str:
+def _flight_engine_html(data, p) -> str:
     """A real, independent flight simulation running IN THE BROWSER --
     gravity + drag + Magnus lift + a log-law wind profile, RK4-integrated
     in JavaScript from the same equations and calibrated coefficients as
@@ -2161,7 +2161,15 @@ def main() -> None:
         # this animates at 60fps with zero server round-trips per frame.
         # The static map/elevation views below still show the official,
         # server-computed result -- this is a preview, not a replacement.
-        st.components.v1.html(_flight_engine_html(data, p), height=680, scrolling=False)
+        # height is generous on purpose: canvas display height scales with
+        # the component's actual (unknown-in-advance) rendered width via
+        # `canvas { height:auto }`, so side(440)+plan(220)+caption in
+        # intrinsic pixels can come out taller than that sum once the
+        # component is wider than the canvases' own 1400px backing
+        # resolution. scrolling=False means anything past `height` is
+        # just gone, not scrollable -- this was clipping the plan
+        # (bird's-eye) canvas entirely at 680.
+        st.components.v1.html(_flight_engine_html(data, p), height=820, scrolling=False)
     if has_map and on_green:
         # Zoom the SAME georeferenced overlay in around the pin, rather than
         # swapping to the green-closeup illustration -- that illustration has
