@@ -14,6 +14,7 @@ chart builders importable for tests and for rendering figures to PNG.
 """
 from __future__ import annotations
 
+import json
 import random
 import sys
 import time
@@ -497,6 +498,18 @@ def fly(
         "calm": calm_packed,
         "shaping": shaping,
         "launch_describe": launch.describe(),
+        "launch_velocity_ms": launch.velocity_vector(),
+        "launch_spin_rads": launch.spin_vector(),
+        "air_density": air.density,
+        "wind_field": None if wind is None else {
+            "speed_ref": wind.speed_ref,
+            "direction_from_deg": wind.direction_from_deg,
+            "height_ref": wind.height_ref,
+            "roughness_length": wind.roughness_length,
+            "shelter_factor": wind.shelter_factor,
+            "treeline_height": wind.treeline_height,
+            "veer_deg_per_100m": wind.veer_deg_per_100m,
+        },
         "shot_enu": enu_track(shot_packed),
         "calm_enu": enu_track(calm_packed),
         "origin_enu": enu_offset(hole.tee, origin),
@@ -1048,31 +1061,264 @@ def _advance_to_next_hole(course, current_number: int) -> None:
         st.session_state["_next_hole"] = numbers[idx + 1]
 
 
-def _play_animation(build_figs, n_samples: int, n_frames: int = 50):
-    """Step each of ``build_figs`` -- one or more ``(until_idx) -> Figure``
-    callables -- across evenly time-spaced samples, in lockstep, each into
-    its own placeholder. This is what makes "Let it fly!" animate the map
-    AND the elevation view together instead of one playing while the other
-    just sits on its finished, static frame.
+def _flight_engine_html(data, p, height_px: int = 620) -> str:
+    """A real, independent flight simulation running IN THE BROWSER --
+    gravity + drag + Magnus lift + a log-law wind profile, RK4-integrated
+    in JavaScript from the same equations and calibrated coefficients as
+    caddie/physics/{trajectory,aero,ball,wind}.py -- not a replay of the
+    Python-computed path. Two engines computing the same shot independently
+    will not land in exactly the same spot; that divergence is the honest
+    price of not round-tripping through Python for every animation frame,
+    which is what made the previous matplotlib-frame-flipping animation
+    look as bad as it did.
 
-    Real flight is 2-9 s; this compresses to a fixed frame count rather than
-    trying to hit real-time. Render time (a full figure rebuild per frame,
-    not the sleep below) still dominates -- see map_chart/elevation_chart's
-    animating-only skips (legend, interpolation) for the other half of the
-    speed budget.
+    Talks to Streamlit exactly once: it's handed the resolved launch
+    velocity/spin vectors, air density, wind field and this shot's terrain
+    profile (data["ground_x"/"ground_z"], the same 1-D "height along the
+    shot's own line" profile the elevation chart draws), then simulates and
+    animates entirely on its own -- no server round-trip per frame, which
+    is what makes it smooth.
     """
-    if callable(build_figs):
-        build_figs = [build_figs]
-    idxs = np.linspace(0, n_samples - 1, min(n_frames, n_samples)).round().astype(int)
-    placeholders = [st.empty() for _ in build_figs]
-    for idx in idxs:
-        for build_fig, placeholder in zip(build_figs, placeholders):
-            fig = build_fig(int(idx))
-            placeholder.pyplot(fig, clear_figure=True)
-            plt.close(fig)  # one run can create dozens of figures fast; don't wait on GC
-        time.sleep(0.005)
-    return placeholders
-    return placeholder
+    vx, vy, vz = data["launch_velocity_ms"]
+    wx, wy, wz = data["launch_spin_rads"]
+    rho = data["air_density"]
+    wind = data["wind_field"]
+    ground_x = [float(x) for x in data["ground_x"]]
+    ground_z = [float(z) for z in data["ground_z"]]
+    origin_z = ground_z[0]
+
+    wind_json = json.dumps(wind) if wind else json.dumps({
+        "speed_ref": 0.0, "direction_from_deg": 0.0, "height_ref": 10.0,
+        "roughness_length": 0.25, "shelter_factor": 1.0,
+        "treeline_height": 27.0, "veer_deg_per_100m": 0.0,
+    })
+
+    return f"""
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  html, body {{ margin:0; padding:0; background:{p["surface"]}; }}
+  .wrap {{ font-family: -apple-system, sans-serif; }}
+  canvas {{ width:100%; height:auto; display:block; }}
+  #caption {{
+    font-size:0.8rem; color:{p["ink_2"]}; text-align:center;
+    margin-top:0.3rem; opacity:0.85;
+  }}
+</style></head>
+<body>
+<div class="wrap">
+  <canvas id="side" width="1400" height="440"></canvas>
+  <canvas id="plan" width="1400" height="220"></canvas>
+  <div id="caption">Simulating…</div>
+</div>
+<script>
+// Ported from caddie/physics/{{trajectory,aero,ball,wind,constants}}.py --
+// same equations, same calibrated coefficients, independent integration.
+const G = 9.80665, BALL_MASS = 0.04593, BALL_RADIUS = 0.021336;
+const BALL_AREA = Math.PI * BALL_RADIUS * BALL_RADIUS, SPIN_DECAY_TAU = 32.99;
+const YARD_M = 0.9144;
+const AERO = {{
+  cd0: 0.1989, cd_s: 0.6450, cd_s2: -0.6285,
+  cl_s: 1.9569, cl_s2: -1.0042, cl_max: 0.34, s_min: 0.0, s_max: 0.55,
+}};
+
+function dragCoefficient(s) {{
+  return Math.min(Math.max(AERO.cd0 + AERO.cd_s*s + AERO.cd_s2*s*s, 0.15), 0.60);
+}}
+function liftCoefficient(s) {{
+  return Math.min(Math.max(AERO.cl_s*s + AERO.cl_s2*s*s, 0.0), AERO.cl_max);
+}}
+
+function windVectorAt(height, wind) {{
+  if (wind.speed_ref === 0.0) return [0, 0, 0];
+  const z0 = wind.roughness_length;
+  const z = Math.max(height, 0.0);
+  const zRef = Math.max(wind.height_ref, z0 * 1.01);
+  if (z <= z0) return [0, 0, 0];
+  let speed = wind.speed_ref * (Math.log(z / z0) / Math.log(zRef / z0));
+  if (wind.shelter_factor < 1.0) {{
+    const t = Math.min(Math.max(height / Math.max(wind.treeline_height, 1e-6), 0.0), 1.0);
+    const blend = t * t * (3.0 - 2.0 * t);
+    speed *= wind.shelter_factor + (1.0 - wind.shelter_factor) * blend;
+  }}
+  const dirDeg = wind.direction_from_deg + wind.veer_deg_per_100m * (height / 100.0);
+  const phi = dirDeg * Math.PI / 180.0;
+  return [-speed * Math.cos(phi), -speed * Math.sin(phi), 0.0];
+}}
+
+function acceleration(pos, vel, spinVec, wind) {{
+  const w = windVectorAt(pos[2], wind);
+  const u = [vel[0]-w[0], vel[1]-w[1], vel[2]-w[2]];
+  const uMag = Math.hypot(u[0], u[1], u[2]);
+  const accel = [0, 0, -G];
+  if (uMag < 1e-6) return accel;
+  const spinMag = Math.hypot(spinVec[0], spinVec[1], spinVec[2]);
+  let s = spinMag * BALL_RADIUS / uMag;
+  s = Math.min(Math.max(s, AERO.s_min), AERO.s_max);
+  const cd = dragCoefficient(s), cl = liftCoefficient(s);
+  const q = 0.5 * {rho} * BALL_AREA;
+  const dragScale = -q * cd * uMag / BALL_MASS;
+  accel[0] += dragScale*u[0]; accel[1] += dragScale*u[1]; accel[2] += dragScale*u[2];
+  if (spinMag > 1e-9) {{
+    const lx = spinVec[1]*u[2] - spinVec[2]*u[1];
+    const ly = spinVec[2]*u[0] - spinVec[0]*u[2];
+    const lz = spinVec[0]*u[1] - spinVec[1]*u[0];
+    const lnorm = Math.hypot(lx, ly, lz);
+    if (lnorm > 1e-9) {{
+      const liftScale = q * cl * uMag * uMag / BALL_MASS / lnorm;
+      accel[0] += liftScale*lx; accel[1] += liftScale*ly; accel[2] += liftScale*lz;
+    }}
+  }}
+  return accel;
+}}
+
+function deriv(t, state, spin0, wind) {{
+  const pos = state.slice(0, 3), vel = state.slice(3, 6);
+  const decay = Math.exp(-t / SPIN_DECAY_TAU);
+  const spinVec = [spin0[0]*decay, spin0[1]*decay, spin0[2]*decay];
+  const a = acceleration(pos, vel, spinVec, wind);
+  return [vel[0], vel[1], vel[2], a[0], a[1], a[2]];
+}}
+function addScaled(a, b, s) {{ return a.map((v, i) => v + b[i]*s); }}
+function rk4Step(t, state, dt, spin0, wind) {{
+  const k1 = deriv(t, state, spin0, wind);
+  const k2 = deriv(t+dt/2, addScaled(state, k1, dt/2), spin0, wind);
+  const k3 = deriv(t+dt/2, addScaled(state, k2, dt/2), spin0, wind);
+  const k4 = deriv(t+dt, addScaled(state, k3, dt), spin0, wind);
+  const next = state.slice();
+  for (let i=0; i<6; i++) next[i] += (dt/6) * (k1[i] + 2*k2[i] + 2*k3[i] + k4[i]);
+  return next;
+}}
+
+const GROUND_X = {json.dumps(ground_x)};
+const GROUND_Z = {json.dumps(ground_z)};
+function groundZAt(x) {{
+  if (x <= GROUND_X[0]) return GROUND_Z[0];
+  if (x >= GROUND_X[GROUND_X.length-1]) return GROUND_Z[GROUND_Z.length-1];
+  for (let i=0; i<GROUND_X.length-1; i++) {{
+    if (x <= GROUND_X[i+1]) {{
+      const t = (x - GROUND_X[i]) / (GROUND_X[i+1] - GROUND_X[i]);
+      return GROUND_Z[i] + t * (GROUND_Z[i+1] - GROUND_Z[i]);
+    }}
+  }}
+  return GROUND_Z[GROUND_Z.length-1];
+}}
+
+function integrate(v0, spin0, wind, originZ) {{
+  const dt = 0.003, maxTime = 15.0;
+  let t = 0, state = [0, 0, originZ, v0[0], v0[1], v0[2]];
+  const path = [{{t, x:0, y:0, z:originZ}}];
+  while (t < maxTime) {{
+    const next = rk4Step(t, state, dt, spin0, wind);
+    const nextPos = next.slice(0, 3);
+    const groundNext = groundZAt(nextPos[0]);
+    if (nextPos[2] <= groundNext) {{
+      const prevPos = state.slice(0, 3);
+      const groundPrev = groundZAt(prevPos[0]);
+      const denom = (prevPos[2]-groundPrev) - (nextPos[2]-groundNext);
+      const frac = denom > 1e-9 ? (prevPos[2]-groundPrev) / denom : 1.0;
+      const landX = prevPos[0] + frac*(nextPos[0]-prevPos[0]);
+      const landY = prevPos[1] + frac*(nextPos[1]-prevPos[1]);
+      path.push({{t: t+frac*dt, x: landX, y: landY, z: groundZAt(landX)}});
+      break;
+    }}
+    t += dt; state = next;
+    path.push({{t, x: nextPos[0], y: nextPos[1], z: nextPos[2]}});
+  }}
+  return path;
+}}
+
+const v0 = [{vx}, {vy}, {vz}];
+const spin0 = [{wx}, {wy}, {wz}];
+const wind = {wind_json};
+const path = integrate(v0, spin0, wind, {origin_z});
+const last = path[path.length-1];
+const apexYd = (Math.max(...path.map(pt => pt.z)) - {origin_z}) / YARD_M;
+const carryYd = Math.hypot(last.x, last.y) / YARD_M;
+document.getElementById('caption').textContent =
+  `Browser physics preview — ${{carryYd.toFixed(0)}} yd carry, ` +
+  `${{apexYd.toFixed(0)}} yd apex, ${{last.t.toFixed(1)}} s ` +
+  `(independent of the numbers above -- see the note in the app)`;
+
+const sideCanvas = document.getElementById('side'), planCanvas = document.getElementById('plan');
+const sideCtx = sideCanvas.getContext('2d'), planCtx = planCanvas.getContext('2d');
+const xMax = Math.max(...path.map(pt => pt.x)) * 1.05;
+const zMax = Math.max(...path.map(pt => pt.z), {origin_z}) * 1.2 + 5;
+const zMin = Math.min(...GROUND_Z, {origin_z}) - 3;
+const yAbsMax = Math.max(8, Math.max(...path.map(pt => Math.abs(pt.y))) * 1.3);
+const pad = 46;
+const sX = x => pad + (x/xMax) * (sideCanvas.width - 2*pad);
+const sZ = z => sideCanvas.height - pad - ((z-zMin)/(zMax-zMin)) * (sideCanvas.height - 2*pad);
+const pX = x => pad + (x/xMax) * (planCanvas.width - 2*pad);
+const pY = y => planCanvas.height/2 - (y/yAbsMax) * (planCanvas.height/2 - pad/2);
+
+function drawAxes() {{
+  sideCtx.strokeStyle = "{p['grid']}"; sideCtx.lineWidth = 1; sideCtx.font = "13px sans-serif";
+  sideCtx.fillStyle = "{p['ink_2']}";
+  for (let ydMark = 0; ydMark <= xMax/YARD_M; ydMark += 50) {{
+    const px = sX(ydMark*YARD_M);
+    sideCtx.beginPath(); sideCtx.moveTo(px, pad*0.3); sideCtx.lineTo(px, sideCanvas.height-pad); sideCtx.stroke();
+    sideCtx.fillText(ydMark + " yd", px+4, pad*0.3+12);
+  }}
+  planCtx.strokeStyle = "{p['axis']}"; planCtx.lineWidth = 1;
+  planCtx.beginPath(); planCtx.moveTo(pad, planCanvas.height/2); planCtx.lineTo(planCanvas.width-pad, planCanvas.height/2); planCtx.stroke();
+}}
+
+function drawGround() {{
+  sideCtx.beginPath();
+  GROUND_X.forEach((gx, i) => {{
+    const px = sX(gx), pz = sZ(GROUND_Z[i]);
+    if (i === 0) sideCtx.moveTo(px, pz); else sideCtx.lineTo(px, pz);
+  }});
+  sideCtx.lineTo(sX(GROUND_X[GROUND_X.length-1]), sideCanvas.height-pad);
+  sideCtx.lineTo(sX(GROUND_X[0]), sideCanvas.height-pad);
+  sideCtx.closePath();
+  sideCtx.fillStyle = "{p['terrain']}"; sideCtx.fill();
+  sideCtx.strokeStyle = "{p['axis']}"; sideCtx.lineWidth = 1.2;
+  sideCtx.beginPath();
+  GROUND_X.forEach((gx, i) => {{
+    const px = sX(gx), pz = sZ(GROUND_Z[i]);
+    if (i === 0) sideCtx.moveTo(px, pz); else sideCtx.lineTo(px, pz);
+  }});
+  sideCtx.stroke();
+}}
+
+let frame = 0;
+const totalFrames = Math.min(180, Math.max(60, Math.round(last.t * 45)));
+function step() {{
+  const idx = Math.min(Math.round((frame/totalFrames) * (path.length-1)), path.length-1);
+  sideCtx.clearRect(0, 0, sideCanvas.width, sideCanvas.height);
+  planCtx.clearRect(0, 0, planCanvas.width, planCanvas.height);
+  drawAxes(); drawGround();
+
+  sideCtx.strokeStyle = "{p['series_1']}"; sideCtx.lineWidth = 2.5;
+  sideCtx.beginPath();
+  for (let i=0; i<=idx; i++) {{
+    const px = sX(path[i].x), pz = sZ(path[i].z);
+    if (i === 0) sideCtx.moveTo(px, pz); else sideCtx.lineTo(px, pz);
+  }}
+  sideCtx.stroke();
+
+  planCtx.strokeStyle = "{p['series_1']}"; planCtx.lineWidth = 2.5;
+  planCtx.beginPath();
+  for (let i=0; i<=idx; i++) {{
+    const px = pX(path[i].x), py = pY(path[i].y);
+    if (i === 0) planCtx.moveTo(px, py); else planCtx.lineTo(px, py);
+  }}
+  planCtx.stroke();
+
+  const cur = path[idx];
+  sideCtx.fillStyle = "{p['ink']}";
+  sideCtx.beginPath(); sideCtx.arc(sX(cur.x), sZ(cur.z), 7, 0, 2*Math.PI); sideCtx.fill();
+  planCtx.fillStyle = "{p['ink']}";
+  planCtx.beginPath(); planCtx.arc(pX(cur.x), pY(cur.y), 6, 0, 2*Math.PI); planCtx.fill();
+
+  frame++;
+  if (frame <= totalFrames) requestAnimationFrame(step);
+}}
+step();
+</script>
+</body></html>
+"""
 
 
 CAVEATS = """\
@@ -1907,27 +2153,15 @@ def main() -> None:
     )
     green_path = hole_map.green_image_path if hole_map is not None else None
 
-    # Animate over the full hole first -- the moving ball needs the whole
-    # flight path in frame, not a crop around the pin.
-    animated_map = animated_elevation = False
     if play_clicked:
-        n_samples = len(shot["x"])
-        # Both views animate together, in lockstep -- previously only
-        # whichever one came first (the map, when available) actually
-        # played, and the other just sat on its finished static frame.
-        builders = []
-        if has_map:
-            builders.append(
-                lambda idx: map_chart(data, p, hole, hole_map, show_calm, until_idx=idx)
-            )
-            animated_map = True
-        builders.append(
-            lambda idx: elevation_chart(
-                data, p, show_calm, until_idx=idx, hole=hole, water=hole_water,
-            )
-        )
-        animated_elevation = True
-        _play_animation(builders, n_samples)
+        # A real, independent RK4 simulation running in the browser (see
+        # _flight_engine_html) -- not a replay of the trajectory above.
+        # Rebuilding a matplotlib figure ~50 times and flipping through the
+        # images (the old approach) is what made the animation look bad;
+        # this animates at 60fps with zero server round-trips per frame.
+        # The static map/elevation views below still show the official,
+        # server-computed result -- this is a preview, not a replacement.
+        st.components.v1.html(_flight_engine_html(data, p), height=680, scrolling=False)
     if has_map and on_green:
         # Zoom the SAME georeferenced overlay in around the pin, rather than
         # swapping to the green-closeup illustration -- that illustration has
@@ -1951,7 +2185,7 @@ def main() -> None:
         if green_path is not None and green_path.is_file():
             with st.expander("Green artwork (illustration only — does not show your ball or the pin)"):
                 st.image(str(green_path), width="stretch")
-    elif has_map and not animated_map:
+    elif has_map:
         st.pyplot(
             map_chart(
                 data, p, hole, hole_map, show_calm,
@@ -1995,11 +2229,10 @@ def main() -> None:
             _advance_to_next_hole(course, hole.number)
             st.rerun()
 
-    if not animated_elevation:
-        st.pyplot(
-            elevation_chart(data, p, show_calm, hole=hole, water=hole_water),
-            clear_figure=True,
-        )
+    st.pyplot(
+        elevation_chart(data, p, show_calm, hole=hole, water=hole_water),
+        clear_figure=True,
+    )
     if not has_map:
         # The map already shows the ground track; the abstract plan view is a
         # fallback for holes with no diagram, and a way to read exact offline.
